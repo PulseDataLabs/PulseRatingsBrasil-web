@@ -1,0 +1,2843 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Ratings de crédito corporativo e soberano do Brasil (S&P, Moody's, Fitch) prontos para uso — sem scraping, sem manutenção. Consultoria em dados financeiros brasileiros." />
+    <meta property="og:title" content="Pulse Ratings — Dados de Rating Prontos para o Mercado Brasileiro" />
+    <meta property="og:description" content="Ratings de crédito corporativo e soberano do Brasil (S&P, Moody's, Fitch) prontos para uso — sem scraping, sem manutenção. Consultoria em dados financeiros brasileiros." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://pulsedatalabs.github.io/PulseRatingsBrasil-web/" />
+    <meta property="og:image" content="https://pulsedatalabs.github.io/PulseRatingsBrasil-web/assets/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pulse Ratings — Dados de Rating Prontos para o Mercado Brasileiro" />
+    <meta name="twitter:description" content="Ratings de crédito corporativo e soberano do Brasil (S&P, Moody's, Fitch) estruturados e atualizados diariamente — prontos para uso em BI, ETL ou modelos de risco." />
+    <meta name="twitter:image" content="https://pulsedatalabs.github.io/PulseRatingsBrasil-web/assets/og-image.png" />
+    <title>Pulse Ratings — Dados de Rating do Mercado Brasileiro | Pulse Data Labs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+    <link rel="canonical" href="https://pulsedatalabs.github.io/PulseRatingsBrasil-web/" />
+  
+  <!-- Preloads para dados do pipeline -->
+  <link rel="preload" href="./data/datasets.json" as="fetch" crossorigin />
+  <link rel="preload" href="./data/schemas.json" as="fetch" crossorigin />
+  <link rel="preload" href="./data/pipeline_status.json" as="fetch" crossorigin />
+  <link rel="preload" href="./data/last_updates.json" as="fetch" crossorigin />
+
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c10;
+      --bg2:       #0d1218;
+      --bg3:       #111820;
+      --surface:   #141c26;
+      --border:    #1e2d3d;
+      --border2:   #243444;
+      --accent:    #00d4ff;
+      --accent2:   #0095c8;
+      --gold:      #f0b429;
+      --gold2:     #c8902a;
+      --green:     #00e5a0;
+      --red:       #ff4d6d;
+      --text:      #e8eef4;
+      --text2:     #8fa3b8;
+      --text3:     #7a8fa3;
+      --austin:    #c084fc;
+      --liberum:   #f97316;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-body: 'Lora', serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    /* Skip link for accessibility */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: var(--bg);
+      padding: 0.75rem 1.5rem;
+      border-radius: 0 0 8px 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      z-index: 1000;
+      text-decoration: none;
+      transition: top 0.2s;
+    }
+    .skip-link:focus {
+      top: 0;
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Focus visible for keyboard navigation */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Visually hidden but accessible */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* Toast notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      animation: toast-in 0.3s ease;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      max-width: 320px;
+    }
+    .toast.success { border-color: var(--green); }
+    .toast.error { border-color: var(--red); }
+    .toast.info { border-color: var(--accent); }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .toast .toast-icon { font-size: 1rem; }
+    .toast.success .toast-icon { color: var(--green); }
+    .toast.error .toast-icon { color: var(--red); }
+    .toast.info .toast-icon { color: var(--accent); }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── Noise texture overlay ──────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    /* ── Grid background ────────────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 3rem;
+      background: rgba(8,12,16,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .nav-logo .pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text2);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--accent); }
+
+    .nav-cta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 0.5rem 1.2rem;
+      border-radius: 4px;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .nav-cta:hover { background: #33ddff; transform: translateY(-1px); }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 6rem;
+      overflow: hidden;
+    }
+
+    /* Glow orbs */
+    .hero-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+    }
+    .hero-orb-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.12), transparent 70%);
+      top: -100px; left: -150px;
+      animation: drift1 12s ease-in-out infinite alternate;
+    }
+    .hero-orb-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(240,180,41,0.08), transparent 70%);
+      bottom: -80px; right: -100px;
+      animation: drift2 15s ease-in-out infinite alternate;
+    }
+    .hero-orb-3 {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(0,229,160,0.06), transparent 70%);
+      top: 40%; left: 55%;
+      animation: drift3 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(60px, 40px); } }
+    @keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(-40px, -60px); } }
+    @keyframes drift3 { from { transform: translate(0,0); } to { transform: translate(30px, -30px); } }
+
+    /* Ticker bar */
+    .ticker-bar {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text3);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .ticker-bar::before, .ticker-bar::after {
+      content: '';
+      width: 40px; height: 1px;
+      background: var(--border2);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse-dot 1.5s ease-in-out infinite;
+      margin-right: 0.3rem;
+    }
+
+    .hero-title {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: clamp(3.5rem, 9vw, 7.5rem);
+      line-height: 0.92;
+      letter-spacing: -0.04em;
+      margin-bottom: 0.4rem;
+      animation: fadeUp 0.8s ease 0.1s both;
+    }
+
+    .hero-title .line-accent {
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--accent);
+      display: block;
+    }
+
+    .hero-title .line-solid {
+      color: var(--text);
+      display: block;
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      display: block;
+      animation: fadeUp 0.8s ease 0.2s both;
+    }
+
+    .hero-description {
+      max-width: 580px;
+      font-size: 1.05rem;
+      line-height: 1.75;
+      color: var(--text2);
+      margin-bottom: 3rem;
+      animation: fadeUp 0.8s ease 0.3s both;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.8s ease 0.4s both;
+    }
+
+    .btn-primary {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 0.9rem 2rem;
+      border-radius: 4px;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 0 30px rgba(0,212,255,0.2);
+    }
+
+    .btn-primary:hover {
+      background: #33ddff;
+      transform: translateY(-2px);
+      box-shadow: 0 0 50px rgba(0,212,255,0.35);
+    }
+
+    .btn-secondary {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text2);
+      background: transparent;
+      padding: 0.9rem 2rem;
+      border-radius: 4px;
+      border: 1px solid var(--border2);
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s, transform 0.15s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* Hero stats strip */
+    .hero-stats {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+      overflow: hidden;
+      animation: fadeUp 0.8s ease 0.5s both;
+    }
+
+    .stat-item {
+      flex: 1;
+      padding: 1.5rem 2rem;
+      border-right: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+    }
+
+    .stat-item:last-child { border-right: none; }
+
+    .stat-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .stat-item:hover::before { opacity: 1; }
+
+    .stat-value {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1.8rem;
+      color: var(--text);
+      display: block;
+      letter-spacing: -0.03em;
+    }
+
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.3rem;
+      display: block;
+    }
+
+    /* ── SECTIONS ───────────────────────────────────────── */
+    section {
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .section-title {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--text2);
+      font-size: 1rem;
+      line-height: 1.75;
+      max-width: 560px;
+    }
+
+    /* ── HOW IT WORKS ───────────────────────────────────── */
+    .how-section {
+      padding: 8rem 0;
+    }
+
+    .how-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: center;
+      margin-top: 4rem;
+    }
+
+    .pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .pipeline-step {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+      padding: 1.5rem 0;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      transition: all 0.25s;
+    }
+
+    .pipeline-step:last-child { border-bottom: none; }
+    .pipeline-step:hover { background: transparent; }
+
+    .pipeline-step:hover .step-icon {
+      background: var(--accent);
+      color: var(--bg);
+      box-shadow: 0 0 20px rgba(0,212,255,0.4);
+    }
+
+    .step-icon {
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+      transition: all 0.25s;
+    }
+
+    .step-content {}
+
+    .step-title {
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+      color: var(--text);
+    }
+
+    .step-desc {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text3);
+      line-height: 1.6;
+    }
+
+    /* Schedule card */
+    .schedule-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .schedule-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .schedule-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .schedule-row:last-child { border-bottom: none; }
+    .schedule-row:hover { background: rgba(0,212,255,0.03); }
+
+    .schedule-time {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      min-width: 70px;
+    }
+
+    .schedule-name {
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex: 1;
+    }
+
+    .schedule-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .tag-anbima { background: rgba(240,180,41,0.12); color: var(--gold); border: 1px solid rgba(240,180,41,0.2); }
+    .tag-b3     { background: rgba(0,212,255,0.08);  color: var(--accent); border: 1px solid rgba(0,212,255,0.15); }
+    .tag-bcb    { background: rgba(0,229,160,0.1);   color: var(--green); border: 1px solid rgba(0,229,160,0.15); }
+    .tag-ibge   { background: rgba(187,134,252,0.1); color: #bb86fc; border: 1px solid rgba(187,134,252,0.2); }
+    .tag-migrados{ background: rgba(240,180,41,0.08); color: var(--gold2); border: 1px solid rgba(240,180,41,0.15); }
+    .tag-cvm    { background: rgba(0,212,255,0.1);  color: var(--accent2); border: 1px solid rgba(0,212,255,0.15); }
+    .tag-austin { background: rgba(168,85,247,0.12); color: var(--austin); border: 1px solid rgba(168,85,247,0.2); }
+    .tag-liberum{ background: rgba(249,115,22,0.12); color: var(--liberum); border: 1px solid rgba(249,115,22,0.2); }
+
+    /* ── DATASETS ───────────────────────────────────────── */
+    .datasets-section {
+      padding: 8rem 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .datasets-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .datasets-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      content-visibility: auto;
+      contain-intrinsic-size: 500px;
+    }
+
+    .datasets-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+      justify-content: center;
+    }
+
+    .filter-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 0.6rem 1.2rem;
+      border-radius: 30px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      user-select: none;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--border2);
+      color: var(--text);
+      transform: translateY(-2px);
+    }
+
+    .filter-btn.active {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+    }
+
+    .btn-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: all 0.3s;
+    }
+    .btn-dot.dot-all { background: var(--text2); }
+    .btn-dot.dot-sp { background: #ff5c62; box-shadow: 0 0 6px rgba(255, 92, 98, 0.4); }
+    .btn-dot.dot-moodys { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, 0.4); }
+    .btn-dot.dot-fitch { background: #eab308; box-shadow: 0 0 6px rgba(234, 179, 8, 0.4); }
+    .btn-dot.dot-austin { background: #c084fc; box-shadow: 0 0 6px rgba(192, 132, 252, 0.4); }
+    .btn-dot.dot-liberum { background: #f97316; box-shadow: 0 0 6px rgba(249, 115, 22, 0.4); }
+
+    .filter-btn.active[data-source="all"] .btn-dot.dot-all { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+    .filter-btn.active[data-source="s_p"] {
+      background: rgba(227, 83, 89, 0.1);
+      border-color: #ff5c62;
+      color: #ff5c62;
+      box-shadow: 0 0 15px rgba(227, 83, 89, 0.15);
+    }
+    
+    .filter-btn.active[data-source="moodys"] {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+    }
+
+    .filter-btn.active[data-source="fitch"] {
+      background: rgba(234, 179, 8, 0.1);
+      border-color: #eab308;
+      color: #eab308;
+      box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
+    }
+
+    .filter-btn.active[data-source="austin"] {
+      background: rgba(168, 85, 247, 0.1);
+      border-color: #c084fc;
+      color: #c084fc;
+      box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
+    }
+
+    .filter-btn.active[data-source="liberum"] {
+      background: rgba(249, 115, 22, 0.1);
+      border-color: #f97316;
+      color: #f97316;
+      box-shadow: 0 0 15px rgba(249, 115, 22, 0.15);
+    }
+
+    .dataset-card.filtered-out, .schema-card.filtered-out {
+      display: none !important;
+    }
+
+    .dataset-card {
+      background: var(--bg2);
+      padding: 2rem;
+      transition: background 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dataset-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .dataset-card.sp-card::after { background: radial-gradient(circle at top right, rgba(227, 83, 89, 0.08), transparent 60%); }
+    .dataset-card.moodys-card::after { background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 60%); }
+    .dataset-card.fitch-card::after { background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.08), transparent 60%); }
+    .dataset-card.austin-card::after { background: radial-gradient(circle at top right, rgba(168, 85, 247, 0.08), transparent 60%); }
+    .dataset-card.liberum-card::after { background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.08), transparent 60%); }
+    .dataset-card.consolidated-card::after { background: radial-gradient(circle at top right, rgba(187, 134, 252, 0.08), transparent 60%); }
+
+    
+    /* ── Datasets Table & View Toggle ─────────────────── */
+    .datasets-view-toggle {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+    .view-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .view-toggle-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .view-toggle-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+      border-color: var(--border2);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      font-weight: 600;
+    }
+
+    .datasets-table-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    .datasets-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .datasets-table thead {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border2);
+    }
+    .datasets-table th {
+      padding: 0.85rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text3);
+      white-space: nowrap;
+    }
+    .datasets-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s ease;
+    }
+    .datasets-table tbody tr:last-child {
+      border-bottom: none;
+    }
+    .datasets-table tbody tr:hover {
+      background: rgba(0, 212, 255, 0.035);
+    }
+    .datasets-table tbody tr.filtered-out {
+      display: none !important;
+    }
+    .datasets-table td {
+      padding: 0.85rem 1rem;
+      vertical-align: middle;
+      font-size: 0.82rem;
+      color: var(--text2);
+    }
+    .tbl-file-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      background: rgba(0, 212, 255, 0.08);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 212, 255, 0.16);
+      white-space: nowrap;
+      display: inline-block;
+    }
+    .agency-tag {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+    .agency-tag.agency-s_p {
+      background: rgba(227, 83, 89, 0.1);
+      border: 1px solid rgba(227, 83, 89, 0.25);
+      color: #ff5c62;
+    }
+    .agency-tag.agency-moodys {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
+    }
+    .agency-tag.agency-fitch {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid rgba(234, 179, 8, 0.25);
+      color: #eab308;
+    }
+    .agency-tag.agency-austin {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      color: #c084fc;
+    }
+    .agency-tag.agency-liberum {
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      color: #f97316;
+    }
+    .agency-tag.agency-consolidated {
+      background: rgba(187, 134, 252, 0.1);
+      border: 1px solid rgba(187, 134, 252, 0.25);
+      color: #bb86fc;
+    }
+    .agency-tag.agency-other {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+    .tbl-action-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 0.35rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .tbl-action-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0, 212, 255, 0.05);
+    }
+    .tbl-action-btn.tbl-btn-download {
+      background: rgba(0, 229, 160, 0.08);
+      border-color: rgba(0, 229, 160, 0.25);
+      color: var(--green);
+      font-weight: 500;
+    }
+    .tbl-action-btn.tbl-btn-download:hover {
+      background: var(--green);
+      color: var(--bg);
+      box-shadow: 0 0 12px rgba(0, 229, 160, 0.3);
+    }
+
+    .dataset-card:hover { background: var(--surface); }
+    .dataset-card:hover::after { opacity: 1; }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .card-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .icon-sp {
+      background: rgba(227, 83, 89, 0.1);
+      border: 1px solid rgba(227, 83, 89, 0.25);
+      color: #ff5c62;
+      font-weight: 800;
+      font-size: 0.85rem !important;
+      letter-spacing: -0.05em;
+      font-family: 'Outfit', sans-serif;
+    }
+    .icon-moodys {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 1.1rem !important;
+      font-family: 'Outfit', sans-serif;
+    }
+    .icon-fitch {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid rgba(234, 179, 8, 0.25);
+      color: #eab308;
+      font-weight: 800;
+      font-size: 1.1rem !important;
+      font-family: 'Outfit', sans-serif;
+    }
+    .icon-austin {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      color: #c084fc;
+      font-weight: 800;
+      font-size: 1.1rem !important;
+      font-family: 'Outfit', sans-serif;
+    }
+    .icon-liberum {
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.25);
+      color: #f97316;
+      font-weight: 800;
+      font-size: 1.1rem !important;
+      font-family: 'Outfit', sans-serif;
+    }
+    .icon-consolidated {
+      background: rgba(187, 134, 252, 0.1);
+      border: 1px solid rgba(187, 134, 252, 0.25);
+      color: #bb86fc;
+      font-weight: 800;
+      font-size: 0.85rem !important;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .card-badge {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 0.35rem;
+      align-items: center;
+    }
+
+    .badge-daily      { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+    .badge-dynamic    { background: rgba(0,212,255,0.08); color: var(--accent); border: 1px solid rgba(0,212,255,0.15); }
+    .badge-cumulative { background: rgba(0,212,255,0.08); color: var(--accent); border: 1px solid rgba(0,212,255,0.15); }
+    .badge-snapshot   { background: rgba(240,180,41,0.08); color: #f0b429; border: 1px solid rgba(240,180,41,0.15); }
+
+    .card-title {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.01em;
+    }
+
+    .card-file {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text3);
+      margin-bottom: 1rem;
+    }
+
+    .card-desc {
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--text2);
+      margin-bottom: 1.25rem;
+    }
+
+    .card-fields {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .field-tag {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      padding: 0.2rem 0.5rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text3);
+      text-transform: lowercase;
+      letter-spacing: 0.04em;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .card-source {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text3);
+    }
+
+    .download-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text2);
+      text-decoration: none;
+      padding: 0.45rem 0.9rem;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+
+    .download-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0,212,255,0.05);
+    }
+
+    .download-btn svg {
+      width: 12px; height: 12px;
+    }
+
+    /* ── SCHEMA ─────────────────────────────────────────── */
+    .schema-section {
+      padding: 8rem 0;
+    }
+
+    .schema-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 3rem;
+      content-visibility: auto;
+      contain-intrinsic-size: 500px;
+    }
+
+    .schema-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .schema-card-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .schema-card-title {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text2);
+    }
+
+    .schema-csv-name {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text3);
+    }
+
+    .schema-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .schema-table th {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.6rem 1.25rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+
+    .schema-table td {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.6rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text2);
+    }
+
+    .schema-table tr:last-child td { border-bottom: none; }
+    .schema-table tr:hover td { background: rgba(0,212,255,0.02); }
+
+    .schema-table td:first-child { color: var(--accent); }
+
+    .type-badge {
+      display: inline-block;
+      font-size: 0.58rem;
+      padding: 0.1rem 0.4rem;
+      background: var(--bg3);
+      border-radius: 3px;
+      color: var(--text3);
+      border: 1px solid var(--border);
+    }
+
+    /* ── SETUP ──────────────────────────────────────────── */
+    .setup-section {
+      padding: 8rem 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+    }
+
+    .setup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+      margin-top: 3rem;
+    }
+
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .setup-step {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--bg);
+      background: var(--accent);
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .setup-step h4 {
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .setup-step p {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text3);
+      line-height: 1.6;
+    }
+
+    .setup-step p code {
+      color: var(--accent);
+      background: rgba(0,212,255,0.07);
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    /* Code block */
+    .code-block {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .code-header {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .cd-red   { background: #ff5f57; }
+    .cd-yellow{ background: #ffbd2e; }
+    .cd-green { background: #28c840; }
+
+    .code-filename {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text3);
+      margin-left: auto;
+    }
+
+    .code-body {
+      padding: 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.8;
+      color: var(--text2);
+      overflow-x: auto;
+    }
+
+    .code-body .cm  { color: var(--text3); font-style: italic; }
+    .code-body .kw  { color: #c792ea; }
+    .code-body .str { color: var(--green); }
+    .code-body .var { color: var(--accent); }
+    .code-body .op  { color: var(--gold); }
+
+    /* ── FOOTER ─────────────────────────────────────────── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 3rem 0;
+      background: var(--bg);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-logo {
+      font-family: var(--font-head);
+      font-weight: 800;
+      font-size: 1rem;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text3);
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    .footer-copy {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text3);
+    }
+
+    /* ── ANIMATIONS ─────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 900px) {
+      nav { padding: 1rem 1.5rem; }
+      .mobile-menu-btn { display: block !important; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: rgba(8,12,16,0.98);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
+        gap: 1rem;
+      }
+      .nav-links.nav-open { display: flex; }
+      .how-grid, .setup-grid, .schema-grid, .datasets-grid { grid-template-columns: 1fr; }
+      .hero-stats { flex-wrap: wrap; }
+      .stat-item { min-width: 50%; border-right: none; border-bottom: 1px solid var(--border); }
+      .datasets-header { flex-direction: column; align-items: flex-start; }
+      .schedule-row { flex-wrap: wrap; gap: 0.5rem; }
+      .toast-container { right: 1rem; left: 1rem; bottom: 1rem; }
+      .toast { max-width: 100%; }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title { font-size: 3rem; }
+      .container { padding: 0 1.25rem; }
+      .hero { padding: 7rem 1.25rem 4rem; }
+      .stat-item { min-width: 100%; }
+      .hero-ctas { flex-direction: column; align-items: center; }
+      .btn-primary, .btn-secondary { width: 100%; text-align: center; }
+      nav { gap: 0.5rem; }
+      .nav-cta { display: none; }
+      .search-wrapper { max-width: 100% !important; }
+      .stat-value { font-size: 1.4rem; }
+    }
+
+    /* Last capture date indicator */
+    .card-last-update {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--accent);
+      background: rgba(0, 212, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      align-self: flex-start;
+    }
+    .card-last-update::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 6px var(--accent);
+    }
+
+    /* ── NO RESULTS ─────────────────────────────────────── */
+    .no-results {
+      grid-column: 1 / -1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .no-results.visible { display: flex; }
+    .no-results-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.4;
+    }
+    .no-results-title {
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text2);
+      margin-bottom: 0.3rem;
+    }
+    .no-results-desc {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text3);
+    }
+
+    /* Floating animation for logo */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+
+    /* ── SEARCH INPUTS ──────────────────────────────────── */
+    .search-wrapper input {
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-wrapper input:focus {
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 10px rgba(0, 212, 255, 0.25);
+    }
+
+    /* ── COPY BUTTON ────────────────────────────────────── */
+    .copy-btn {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      padding: 0.5rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(0, 212, 255, 0.05);
+      transform: translateY(-1px);
+    }
+    
+    .copy-btn:active {
+      transform: translateY(0);
+    }
+
+    .copy-url-btn:hover {
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+      background: rgba(0,212,255,0.05) !important;
+    }
+
+    /* ── PIPELINE HEALTH DROPDOWN ───────────────────────── */
+    .pipeline-health-container {
+      position: relative;
+    }
+    
+    .health-dropdown-content {
+      display: none;
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      min-width: 250px;
+      z-index: 100;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.55);
+      font-family: var(--font-body);
+    }
+    
+    .pipeline-health-container:hover .health-dropdown-content {
+      display: block;
+    }
+    
+    .dropdown-header {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text2);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    
+    #health-details {
+      font-size: 0.8rem;
+      color: var(--text1);
+      line-height: 1.4;
+    }
+    
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.35rem;
+    }
+    
+    /* Error states custom UX styling */
+    .error-state {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      background: rgba(255, 77, 109, 0.03);
+      border: 1px solid rgba(255, 77, 109, 0.2);
+      border-radius: 16px;
+      backdrop-filter: blur(8px);
+      text-align: center;
+      max-width: 500px;
+      margin: 2rem auto;
+      box-shadow: 0 8px 32px 0 rgba(255, 77, 109, 0.05);
+    }
+    
+    .error-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      filter: drop-shadow(0 0 8px rgba(255, 77, 109, 0.4));
+    }
+    
+    .error-title {
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--red);
+      margin-bottom: 0.5rem;
+    }
+    
+    .error-desc {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text2);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+  <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- NAV -->
+<nav role="navigation" aria-label="Navegação principal">
+  <a href="#" class="nav-logo">
+    <img src="assets/logo.png" alt="Pulse Ratings Logo" style="height: 24px; border-radius: 4px;">
+    Pulse Ratings <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(0, 212, 255, 0.15); color: var(--accent); border-radius: 10px; margin-left: 0.4rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Brasil</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#como-funciona">Pipeline</a></li>
+    <li><a href="#datasets">Datasets</a></li>
+    <li><a href="#schema">Schema</a></li>
+    <li><a href="consulta.html">Consulta</a></li>
+    <li><a href="#uso-comercial">Uso Comercial</a></li>
+  </ul>
+  <button class="mobile-menu-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobile-menu" style="display:none;background:none;border:none;color:var(--text);font-size:1.5rem;cursor:pointer;">☰</button>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <!-- PIPELINE HEALTH BADGE -->
+      <div id="pipeline-health" class="pipeline-health-container" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.8rem; border-radius: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer;">
+        <button id="health-trigger" aria-label="Status do pipeline" aria-expanded="false" aria-controls="health-dropdown" style="display:flex;align-items:center;gap:0.5rem;background:none;border:none;color:inherit;cursor:pointer;padding:0;font:inherit;">
+          <span id="health-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #999; display: inline-block; box-shadow: 0 0 8px #999; transition: all 0.3s;" aria-hidden="true"></span>
+          <span id="health-text" style="color: var(--text2); transition: all 0.3s;">Pipeline: carregando...</span>
+        </button>
+        <div id="health-dropdown" class="health-dropdown-content" role="menu" hidden>
+          <div class="dropdown-header">Status Geral</div>
+          <div id="health-details">Carregando informações...</div>
+        </div>
+      </div>
+      <a href="mailto:pulsedatalabs@gmail.com?subject=Pulse Ratings — Interesse Comercial" class="nav-cta">Fale Conosco ↗</a>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="main-content">
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+
+  <div class="hero-logo-container" style="display: flex; justify-content: center; margin-bottom: 2rem; animation: float 6s ease-in-out infinite;">
+    <img src="assets/logo.png" alt="Pulse Ratings Logo" style="width: 120px; height: 120px; border-radius: 16px; box-shadow: 0 0 30px rgba(0, 212, 255, 0.25); border: 1px solid rgba(0, 212, 255, 0.15);">
+  </div>
+
+  <div class="ticker-bar">
+    <span class="status-dot"></span>
+    Atualização automática · Seg–Sex · Execuções periódicas ao longo do dia BRT
+  </div>
+
+  <h1 class="hero-title">
+    <span class="line-solid">Pulse</span>
+    <span class="line-accent">Ratings</span>
+  </h1>
+
+  <span class="hero-subtitle">Brazilian Corporate & Sovereign Credit Ratings</span>
+
+  <p class="hero-description">
+    Ratings de crédito corporativo e soberano do Brasil consolidados em um único lugar —
+    <strong style="color: var(--text);">S&P Global, Moody's, Fitch, Austin e Liberum</strong>, atualizados automaticamente três vezes ao dia.
+    Dados estruturados, prontos para integrar diretamente ao seu BI, ETL ou modelo de risco.
+    Sem scraping, sem manutenção, sem dor de cabeça.
+  </p>
+
+  <div class="hero-ctas">
+    <a href="#datasets" class="btn-primary">Explorar ratings</a>
+    <a href="mailto:pulsedatalabs@gmail.com?subject=Pulse Ratings — Solicito Acesso Comercial" class="btn-secondary">Solicitar Acesso Comercial</a>
+  </div>
+</section>
+
+<!-- STATS STRIP -->
+<div class="hero-stats reveal">
+  <div class="stat-item">
+    <span class="stat-value">—</span>
+    <span class="stat-label">Datasets CSV</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">—</span>
+    <span class="stat-label">Agências de Rating</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">100%</span>
+    <span class="stat-label">Serverless</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="como-funciona">
+  <div class="container">
+    <div class="section-label">Pipeline</div>
+    <h2 class="section-title">Como funciona</h2>
+    <p class="section-desc">
+      O pipeline de dados executa de forma periódica, rodando os scrapers,
+      processando e versionando os ratings diretamente no repositório GitHub.
+    </p>
+
+    <div class="how-grid reveal">
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <div class="step-icon" aria-hidden="true">⏰</div>
+          <div class="step-content">
+            <div class="step-title">GitHub Actions dispara o job</div>
+            <div class="step-desc">Cron agendado periodicamente no horário de Brasília, rodando scrapers paralelos de forma serverless.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-icon" aria-hidden="true">🔗</div>
+          <div class="step-content">
+            <div class="step-title">Scraper acessa a fonte</div>
+            <div class="step-desc">Coleta via APIs internas e download otimizado de planilhas Excel das plataformas web das agências.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-icon" aria-hidden="true">🧹</div>
+          <div class="step-content">
+            <div class="step-title">Dados são normalizados</div>
+            <div class="step-desc">Encoding, datas no padrão ISO e decimais padronizados. Remoção inteligente de linhas duplicadas.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-icon" aria-hidden="true">📄</div>
+          <div class="step-content">
+            <div class="step-title">Atualização dos arquivos CSV</div>
+            <div class="step-desc">Persistência em CSVs planos (UTF-8, separador vírgula). Históricos acumulados ou snapshots vigentes.</div>
+          </div>
+        </div>
+        <div class="pipeline-step">
+          <div class="step-icon" aria-hidden="true">✅</div>
+          <div class="step-content">
+            <div class="step-title">Commit automático no repositório</div>
+            <div class="step-desc">git add → git commit → git push. O CSV atualizado fica disponível imediatamente no GitHub Pages.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="schedule-card">
+        <div class="schedule-header">
+          🕐 &nbsp;Agenda de execução (Seg–Sex, BRT)
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-time">06h00</span>
+          <span class="schedule-name">Manhã</span>
+          <span class="schedule-tag" style="background: rgba(255, 77, 109, 0.15); color: var(--red);">S&P</span>
+          <span class="schedule-tag" style="background: rgba(0, 212, 255, 0.15); color: var(--accent);">Moody's</span>
+          <span class="schedule-tag" style="background: rgba(0, 229, 160, 0.15); color: var(--green);">Fitch</span>
+          <span class="schedule-tag tag-austin">Austin</span>
+          <span class="schedule-tag tag-liberum">Liberum</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-time">12h00</span>
+          <span class="schedule-name">Meio-dia</span>
+          <span class="schedule-tag" style="background: rgba(255, 77, 109, 0.15); color: var(--red);">S&P</span>
+          <span class="schedule-tag" style="background: rgba(0, 212, 255, 0.15); color: var(--accent);">Moody's</span>
+          <span class="schedule-tag" style="background: rgba(0, 229, 160, 0.15); color: var(--green);">Fitch</span>
+          <span class="schedule-tag tag-austin">Austin</span>
+          <span class="schedule-tag tag-liberum">Liberum</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-time">21h00</span>
+          <span class="schedule-name">Noite</span>
+          <span class="schedule-tag" style="background: rgba(255, 77, 109, 0.15); color: var(--red);">S&P</span>
+          <span class="schedule-tag" style="background: rgba(0, 212, 255, 0.15); color: var(--accent);">Moody's</span>
+          <span class="schedule-tag" style="background: rgba(0, 229, 160, 0.15); color: var(--green);">Fitch</span>
+          <span class="schedule-tag tag-austin">Austin</span>
+          <span class="schedule-tag tag-liberum">Liberum</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DATASETS -->
+<section class="datasets-section" id="datasets">
+  <div class="container">
+    <div class="datasets-header reveal" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <div class="section-label">Datasets</div>
+        <h2 class="section-title">Datasets disponíveis</h2>
+        <p class="section-desc">CSVs atualizados diariamente. Clique em Download para baixar o arquivo mais recente.</p>
+      </div>
+      <div class="datasets-view-toggle">
+        <button type="button" class="view-toggle-btn active" id="btn-view-table" title="Visualização compacta em Tabela">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          Tabela
+        </button>
+        <button type="button" class="view-toggle-btn" id="btn-view-cards" title="Visualização em Cards">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Cards
+        </button>
+      </div>
+    </div>
+
+    <!-- Busca de Datasets -->
+    <div class="datasets-search-container reveal" style="margin-top: 1.5rem; margin-bottom: 2rem; display: flex; justify-content: center; width: 100%;">
+      <div class="search-wrapper" style="position: relative; width: 100%; max-width: 500px;">
+        <label for="dataset-search" class="visually-hidden">Buscar datasets</label>
+        <input type="text" id="dataset-search" placeholder="Buscar datasets..." aria-label="Buscar datasets" style="width: 100%; padding: 0.75rem 1.5rem; border-radius: 30px; border: 1px solid var(--border); background: var(--bg2); color: var(--text1); font-size: 0.95rem; outline: none; transition: all 0.3s;" />
+        <button type="button" id="dataset-search-clear" aria-label="Limpar busca" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;display:none;font-size:1rem;line-height:1;" aria-hidden="true">✕</button>
+      </div>
+    </div>
+
+    <div class="datasets-filter reveal">
+      <button class="filter-btn active" data-source="all"><span class="btn-dot dot-all"></span> Todas as Agências</button>
+      <button class="filter-btn" data-source="s_p"><span class="btn-dot dot-sp"></span> S&P Global</button>
+      <button class="filter-btn" data-source="moodys"><span class="btn-dot dot-moodys"></span> Moody's Local</button>
+      <button class="filter-btn" data-source="fitch"><span class="btn-dot dot-fitch"></span> Fitch Ratings</button>
+      <button class="filter-btn" data-source="austin"><span class="btn-dot dot-austin"></span> Austin Rating</button>
+      <button class="filter-btn" data-source="liberum"><span class="btn-dot dot-liberum"></span> Liberum Ratings</button>
+    </div>
+
+    <!-- Visualização em Tabela (Padrão de Alta Densidade) -->
+    <div class="datasets-table-wrapper reveal" id="datasets-table-container">
+      <table class="datasets-table" id="datasets-table">
+        <thead>
+          <tr>
+            <th style="min-width: 250px;">Dataset</th>
+            <th>Arquivo</th>
+            <th>Agência</th>
+            <th>Tipo</th>
+            <th>Atualização / Período</th>
+            <th>Tags</th>
+            <th style="text-align: right; min-width: 190px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="datasets-table-body">
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text2);">
+              Carregando catálogo de datasets...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Visualização em Cards (Opcional) -->
+    <div class="datasets-grid reveal" id="datasets-container" style="display: none;">
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text2);">
+        <p id="datasets-loading">Carregando catálogo de datasets...</p>
+      </div>
+    </div>
+
+    <div class="no-results" id="datasets-no-results" style="display: none; margin-top: 2rem;">
+      <div class="no-results-icon">🔍</div>
+      <div class="no-results-title">Nenhum dataset encontrado</div>
+      <div class="no-results-desc">Tente alterar os filtros ou buscar por outro termo.</div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCHEMA -->
+<section class="schema-section" id="schema">
+  <div class="container">
+    <div class="section-label reveal">Schema</div>
+    <h2 class="section-title reveal">Estrutura dos dados</h2>
+    <p class="section-desc reveal">Todos os CSVs seguem o padrão: UTF-8, separador vírgula, decimal ponto, datas YYYY-MM-DD.</p>
+
+    <!-- Busca de Schemas -->
+    <div class="schema-search-container reveal" style="margin-bottom: 2rem; display: flex; justify-content: center; width: 100%;">
+      <div class="search-wrapper" style="position: relative; width: 100%; max-width: 500px;">
+        <label for="schema-search" class="visually-hidden">Buscar colunas</label>
+        <input type="text" id="schema-search" placeholder="Buscar colunas (ex: cnpj, rating, data...)" aria-label="Buscar colunas" style="width: 100%; padding: 0.75rem 1.5rem; border-radius: 30px; border: 1px solid var(--border); background: var(--bg2); color: var(--text1); font-size: 0.95rem; outline: none; transition: all 0.3s;" />
+        <button type="button" id="schema-search-clear" aria-label="Limpar busca" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;display:none;font-size:1rem;line-height:1;" aria-hidden="true">✕</button>
+      </div>
+    </div>
+
+    <div class="schema-grid reveal" id="schema-grid">
+      <div id="schema-loading" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text2);">
+        <p>Carregando estrutura dos dados...</p>
+      </div>
+      <div class="no-results" id="schema-no-results">
+        <div class="no-results-icon">🔍</div>
+        <div class="no-results-title">Nenhuma coluna encontrada</div>
+        <div class="no-results-desc">Tente alterar os filtros ou buscar por outro termo.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USO COMERCIAL -->
+<section class="setup-section" id="uso-comercial">
+  <div class="container">
+    <div class="section-label reveal">Uso Comercial</div>
+    <h2 class="section-title reveal">Quer usar esses dados no seu negócio?</h2>
+    <p class="section-desc reveal">
+      O Pulse Ratings é desenvolvido e mantido pela <strong style="color: var(--text);">Pulse Data Labs</strong>,
+      uma consultoria especializada em dados financeiros brasileiros. Atendemos gestoras,
+      fintechs, escritórios de análise e equipes de risco que precisam de dados estruturados
+      e confiáveis — sem precisar montar e manter a própria infraestrutura de coleta.
+    </p>
+
+    <div class="setup-grid reveal">
+      <div class="steps-list">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div>
+            <h4>Acesso aos dados estruturados</h4>
+            <p>Entregamos os CSVs diretamente para o seu BI, ETL ou modelo de risco — via URL, e-mail ou repositório privado. Você consome, nós mantemos.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div>
+            <h4>Consultoria em dados financeiros</h4>
+            <p>Precisa de um scraper customizado, integração com uma fonte específica ou um pipeline completo? Desenvolvemos sob demanda, com entregas rápidas e documentação incluída.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div>
+            <h4>Customização e fontes adicionais</h4>
+            <p>Além de S&P, Moody's e Fitch, podemos incluir outras fontes conforme sua necessidade — ANBIMA, BCB, CVM, B3 e mais. O escopo é definido junto com você.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div>
+            <h4>Sem compromisso para conversar</h4>
+            <p>Mande um e-mail contando o que você precisa. Respondemos em até 1 dia útil com uma proposta ou uma conversa para entender melhor o seu caso.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 1.5rem; justify-content: center;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 1rem;">✉️</div>
+          <h3 style="font-family: var(--font-head); font-weight: 700; font-size: 1.2rem; margin-bottom: 0.75rem;">Fale com a Pulse Data Labs</h3>
+          <p style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text2); line-height: 1.7; margin-bottom: 1.75rem;">
+            Seja para acesso comercial aos dados, consultoria pontual<br>ou desenvolvimento de pipelines customizados — estamos aqui.
+          </p>
+          <a href="mailto:pulsedatalabs@gmail.com?subject=Pulse Ratings — Interesse Comercial"
+             style="display: inline-block; font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500;
+                    letter-spacing: 0.06em; text-transform: uppercase; color: var(--bg);
+                    background: var(--accent); padding: 0.9rem 2rem; border-radius: 4px;
+                    text-decoration: none; transition: background 0.2s; box-shadow: 0 0 30px rgba(0,212,255,0.2);">
+            pulsedatalabs@gmail.com
+          </a>
+          <p style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--text3); margin-top: 1rem;">
+            Resposta em até 1 dia útil · Sem compromisso
+          </p>
+        </div>
+
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+          <p style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--text3); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">Também disponível para</p>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); display: flex; gap: 0.5rem; align-items: center;">
+              <span style="color: var(--green);">›</span> Integração com Excel, Power BI e Python
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); display: flex; gap: 0.5rem; align-items: center;">
+              <span style="color: var(--green);">›</span> Entrega via repositório privado
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); display: flex; gap: 0.5rem; align-items: center;">
+              <span style="color: var(--green);">›</span> Acesso a dados históricos completos
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); display: flex; gap: 0.5rem; align-items: center;">
+              <span style="color: var(--green);">›</span> Desenvolvimento de pipelines customizados
+            </div>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); display: flex; gap: 0.5rem; align-items: center;">
+              <span style="color: var(--green);">›</span> Outras fontes: ANBIMA, BCB, CVM, B3
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-logo">
+        <span class="pulse-dot" style="width:7px;height:7px;"></span>
+        Pulse Ratings
+      </div>
+      <ul class="footer-links">
+        <li><a href="#como-funciona">Pipeline</a></li>
+        <li><a href="#datasets">Datasets</a></li>
+        <li><a href="#schema">Schema</a></li>
+        <li><a href="consulta.html">Consulta</a></li>
+        <li><a href="#uso-comercial">Uso Comercial</a></li>
+        <li><a href="https://pulsedatalabs.github.io" target="_blank">Pulse Data Labs</a></li>
+        <li><a href="https://github.com/PulseDataLabs/PulseRatingsBrasil" target="_blank">GitHub</a></li>
+      </ul>
+      <span class="footer-copy">© 2026 Pulse Data Labs · <a href="mailto:pulsedatalabs@gmail.com" style="color: var(--text3); text-decoration: none;">pulsedatalabs@gmail.com</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="./data/last_updates.js"></script>
+<script src="./data/pipeline_status.js"></script>
+<script>
+  let activeSourceFilter = 'all';
+  let activeSearchQuery = '';
+  let activeSchemaSearchQuery = '';
+  let allDatasets = [];
+
+  // Helper to generate a standardized, premium error card for better UX
+  function getErrorStateHtml(title, desc) {
+    return `
+      <div class="error-state">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">${title}</div>
+        <div class="error-desc">${desc}</div>
+      </div>
+    `;
+  }
+
+  // Load datasets dynamically from datasets.json and render them
+  async function loadAndRenderDatasets() {
+    try {
+      const response = await fetch('./data/datasets.json');
+      if (response.ok) {
+        allDatasets = await response.json();
+        renderDatasets();
+
+        // Atualiza stats do hero dinamicamente
+        const statValues = document.querySelectorAll('.stat-value');
+        if (statValues.length >= 2) {
+          statValues[0].textContent = allDatasets.length;
+          const uniqueSources = new Set(allDatasets.map(d => d.source).filter(s => s !== 'Consolidado')).size;
+          statValues[1].textContent = uniqueSources;
+        }
+      } else {
+        throw new Error('Falha ao carregar datasets.json');
+      }
+    } catch (err) {
+      console.error('Erro ao carregar datasets.json:', err);
+      const container = document.getElementById('datasets-container');
+      if (container) {
+        container.innerHTML = getErrorStateHtml(
+          'Erro ao carregar o catálogo',
+          'Não foi possível obter a lista de datasets disponíveis. Por favor, verifique sua conexão ou tente recarregar a página.'
+        );
+      }
+    }
+  }
+
+  let activeDatasetsView = 'table';
+
+  function initDatasetsViewToggle() {
+    const btnTable = document.getElementById('btn-view-table');
+    const btnCards = document.getElementById('btn-view-cards');
+    const tblContainer = document.getElementById('datasets-table-container');
+    const cardsContainer = document.getElementById('datasets-container');
+
+    if (!btnTable || !btnCards || !tblContainer || !cardsContainer) return;
+
+    btnTable.addEventListener('click', () => {
+      activeDatasetsView = 'table';
+      btnTable.classList.add('active');
+      btnCards.classList.remove('active');
+      tblContainer.style.display = 'block';
+      cardsContainer.style.display = 'none';
+      applyDatasetFilters();
+    });
+
+    btnCards.addEventListener('click', () => {
+      activeDatasetsView = 'cards';
+      btnCards.classList.add('active');
+      btnTable.classList.remove('active');
+      tblContainer.style.display = 'none';
+      cardsContainer.style.display = 'grid';
+      applyDatasetFilters();
+    });
+  }
+
+  function renderDatasets() {
+    const tableBody = document.getElementById('datasets-table-body');
+    const cardsContainer = document.getElementById('datasets-container');
+    if (!tableBody && !cardsContainer) return;
+
+    if (allDatasets.length === 0) {
+      if (tableBody) tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 3rem; color: var(--text2);">Nenhum dataset encontrado.</td></tr>`;
+      if (cardsContainer) cardsContainer.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text2);">Nenhum dataset encontrado.</div>`;
+      return;
+    }
+
+    const snapshotFiles = new Set([
+      'standard_and_poors_emissores.csv',
+      'fitch_emissores.csv',
+      'moodys_emissores.csv'
+    ]);
+
+    const updates = window.PULSERATINGS_LAST_UPDATES || {};
+
+    const formatDt = (dStr) => {
+      if (!dStr) return '';
+      const cleanDate = dStr.split(' ')[0];
+      const parts = cleanDate.split('-');
+      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dStr;
+    };
+
+    let tableHtml = '';
+    let cardsHtml = '';
+
+    allDatasets.forEach(dataset => {
+      const lowerFile = dataset.file.toLowerCase();
+      let cardClass = '';
+      let mappedSource = 'other';
+      let agencyLabel = dataset.source || 'Agência';
+
+      if (lowerFile.includes('standard_and_poors_') || lowerFile.includes('s_p_') || lowerFile.includes('spglobal')) {
+        cardClass = 'sp-card';
+        mappedSource = 's_p';
+        agencyLabel = 'S&P Global';
+      } else if (lowerFile.includes('moody')) {
+        cardClass = 'moodys-card';
+        mappedSource = 'moodys';
+        agencyLabel = "Moody's Local";
+      } else if (lowerFile.includes('fitch')) {
+        cardClass = 'fitch-card';
+        mappedSource = 'fitch';
+        agencyLabel = 'Fitch Ratings';
+      } else if (lowerFile.includes('austin')) {
+        cardClass = 'austin-card';
+        mappedSource = 'austin';
+        agencyLabel = 'Austin Rating';
+      } else if (lowerFile.includes('liberum')) {
+        cardClass = 'liberum-card';
+        mappedSource = 'liberum';
+        agencyLabel = 'Liberum Ratings';
+      } else if (lowerFile.includes('consolidado') || lowerFile.startsWith('ratings_') || lowerFile.startsWith('historico_')) {
+        cardClass = 'consolidated-card';
+        mappedSource = 'consolidated';
+        agencyLabel = 'Consolidado';
+      }
+
+      const tagsHtml = (dataset.tags || []).map(t => `<span class="field-tag">${t}</span>`).join('');
+      const iconClass = dataset.iconClass || '';
+      const iconText = dataset.icon || '📊';
+      const isSnapshot = snapshotFiles.has(dataset.file);
+      const accBadgeClass = isSnapshot ? 'badge-snapshot' : 'badge-cumulative';
+      const accBadgeText = isSnapshot ? 'Snapshot' : 'Acumulado';
+      const scraperBadge = dataset.badge ? `<span class="card-badge ${dataset.badgeClass || 'badge-daily'}">${dataset.badge}</span>` : '';
+
+      // Date lookup
+      const entry = updates[dataset.file];
+      let periodHtml = '—';
+      if (entry) {
+        let minDate = '';
+        let maxDate = '';
+        if (typeof entry === 'object' && entry !== null) {
+          minDate = entry.min || '';
+          maxDate = entry.max || '';
+        } else if (typeof entry === 'string') {
+          maxDate = entry;
+        }
+        const minFmt = formatDt(minDate);
+        const maxFmt = formatDt(maxDate);
+
+        if (minFmt && minFmt !== maxFmt) {
+          periodHtml = `<span style="color: var(--text3); font-size: 0.65rem; display: block;">Histórico:</span><strong>${minFmt}</strong> a <strong>${maxFmt}</strong>`;
+        } else if (maxFmt) {
+          periodHtml = `<span style="color: var(--text3); font-size: 0.65rem; display: block;">Mais recente:</span><strong>${maxFmt}</strong>`;
+        }
+      }
+
+      // Search text metadata for ultra-fast filtering
+      const searchMeta = `${dataset.title} ${dataset.file} ${dataset.description || ''} ${(dataset.tags || []).join(' ')} ${agencyLabel}`.toLowerCase();
+
+      // 1. Build Table Row
+      tableHtml += `
+        <tr class="dataset-row" data-source-mapped="${mappedSource}" data-search="${searchMeta.replace(/"/g, '&quot;')}">
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="card-icon ${iconClass}" style="width: 32px; height: 32px; min-width: 32px; font-size: 0.75rem; border-radius: 6px;">${iconText}</div>
+              <div>
+                <div style="font-family: var(--font-head); font-weight: 700; color: var(--text); font-size: 0.92rem; line-height: 1.25;">${dataset.title}</div>
+                <div style="font-size: 0.75rem; color: var(--text3); margin-top: 0.2rem; max-width: 380px; line-height: 1.35; white-space: normal;">${dataset.description || ''}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <code class="tbl-file-badge">${dataset.file}</code>
+          </td>
+          <td>
+            <span class="agency-tag agency-${mappedSource}">${agencyLabel}</span>
+          </td>
+          <td>
+            <div style="display: flex; flex-direction: column; gap: 0.25rem; align-items: flex-start;">
+              <span class="card-badge ${accBadgeClass}" style="font-size: 0.58rem; padding: 0.15rem 0.45rem;">${accBadgeText}</span>
+              ${scraperBadge}
+            </div>
+          </td>
+          <td>
+            <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text2); line-height: 1.3;">
+              ${periodHtml}
+            </div>
+          </td>
+          <td>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; max-width: 170px;">
+              ${tagsHtml}
+            </div>
+          </td>
+          <td style="text-align: right;">
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem;">
+              <a href="${dataset.url}" class="tbl-action-btn tbl-btn-download" target="_blank" download title="Baixar arquivo CSV">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                CSV
+              </a>
+              <button type="button" class="tbl-action-btn copy-url-btn" data-url="${dataset.url}" title="Copiar Link direto para o CSV">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                Link
+              </button>
+              <button type="button" class="tbl-action-btn copy-pandas-btn" data-url="${dataset.url}" title="Copiar código Python / Pandas">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                Pandas
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      // 2. Build Card HTML (for card view toggle)
+      cardsHtml += `
+        <div class="dataset-card ${cardClass}" data-source-mapped="${mappedSource}" data-search="${searchMeta.replace(/"/g, '&quot;')}">
+          <div class="card-top">
+            <div class="card-icon ${iconClass}">${iconText}</div>
+            <div class="card-badges">
+              ${scraperBadge}
+              <span class="card-badge ${accBadgeClass}">${accBadgeText}</span>
+            </div>
+          </div>
+          <div class="card-title">${dataset.title}</div>
+          <div class="card-file">${dataset.file}</div>
+          <div class="card-last-update">${periodHtml.replace(/<[^>]*>?/gm, ' ')}</div>
+          <div class="card-desc">${dataset.description || 'Sem descrição.'}</div>
+          <div class="card-fields">
+            ${tagsHtml}
+          </div>
+          <div class="card-footer">
+            <span class="card-source">Fonte: ${agencyLabel}</span>
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <button type="button" class="tbl-action-btn copy-pandas-btn" data-url="${dataset.url}" title="Copiar Pandas">Pandas</button>
+              <button type="button" class="tbl-action-btn copy-url-btn" data-url="${dataset.url}" title="Copiar Link">Link</button>
+              <a href="${dataset.url}" class="download-btn" target="_blank" download>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                CSV
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    if (tableBody) tableBody.innerHTML = tableHtml;
+    if (cardsContainer) cardsContainer.innerHTML = cardsHtml;
+  }
+
+  // Setup click listeners for copy buttons across table and cards
+  document.addEventListener('click', (e) => {
+    const copyUrlBtn = e.target.closest('.copy-url-btn');
+    if (copyUrlBtn) {
+      e.preventDefault();
+      const url = copyUrlBtn.getAttribute('data-url');
+      if (url) {
+        navigator.clipboard.writeText(url).then(() => {
+          showToast('URL do CSV copiada com sucesso!', 'success');
+        }).catch(() => {
+          showToast('Erro ao copiar URL', 'error');
+        });
+      }
+      return;
+    }
+
+    const copyPandasBtn = e.target.closest('.copy-pandas-btn');
+    if (copyPandasBtn) {
+      e.preventDefault();
+      const url = copyPandasBtn.getAttribute('data-url');
+      if (url) {
+        const code = `import pandas as pd\ndf = pd.read_csv("${url}")`;
+        navigator.clipboard.writeText(code).then(() => {
+          showToast('Código Pandas copiado com sucesso!', 'success');
+        }).catch(() => {
+          showToast('Erro ao copiar código', 'error');
+        });
+      }
+      return;
+    }
+  });
+
+  // Reveal on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        entry.target.style.transitionDelay = `${i * 0.05}s`;
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Smooth anchor scroll with offset for fixed nav
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
+      }
+    });
+  });
+
+  // Fallback load last updates if not present synchronously
+  async function loadLastUpdates() {
+    let updates = window.PULSERATINGS_LAST_UPDATES;
+    if (!updates) {
+      try {
+        const response = await fetch('./data/last_updates.json');
+        if (response.ok) {
+          window.PULSERATINGS_LAST_UPDATES = await response.json();
+          renderDatasets();
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar last_updates.json:', err);
+      }
+    }
+  }
+
+  // Toast notification system
+  function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+    toast.innerHTML = `<span class="toast-icon" aria-hidden="true">${icons[type] || icons.info}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'toast-in 0.3s ease reverse';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  // Initialize dataset filtering by source
+  function initDatasetFilters() {
+    // Debounce helper
+    function debounce(fn, delay) {
+      let timeoutId;
+      return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn(...args), delay);
+      };
+    }
+
+    // Filter functions
+    function applyDatasetFilters() {
+      const rows = document.querySelectorAll('.dataset-row');
+      const cards = document.querySelectorAll('.dataset-card');
+      const noResults = document.getElementById('datasets-no-results');
+      const clearFiltersBtn = document.getElementById('clear-filters');
+      let visibleCount = 0;
+
+      // Filter Table Rows
+      rows.forEach(row => {
+        const rowSource = row.getAttribute('data-source-mapped');
+        const isConsolidated = rowSource === 'consolidated';
+        const sourceMatch = isConsolidated || (activeSourceFilter === 'all' || rowSource === activeSourceFilter);
+        const searchMeta = row.getAttribute('data-search') || '';
+        const searchMatch = !activeSearchQuery || searchMeta.includes(activeSearchQuery);
+
+        if (sourceMatch && searchMatch) {
+          row.classList.remove('filtered-out');
+          visibleCount++;
+        } else {
+          row.classList.add('filtered-out');
+        }
+      });
+
+      // Filter Cards
+      cards.forEach(card => {
+        const cardSource = card.getAttribute('data-source-mapped');
+        const isConsolidated = cardSource === 'consolidated';
+        const sourceMatch = isConsolidated || (activeSourceFilter === 'all' || cardSource === activeSourceFilter);
+        const searchMeta = card.getAttribute('data-search') || '';
+        const searchMatch = !activeSearchQuery || searchMeta.includes(activeSearchQuery);
+
+        if (sourceMatch && searchMatch) {
+          card.classList.remove('filtered-out');
+        } else {
+          card.classList.add('filtered-out');
+        }
+      });
+
+      if (noResults) {
+        noResults.style.display = (visibleCount === 0) ? 'block' : 'none';
+      }
+      if (clearFiltersBtn) {
+        clearFiltersBtn.style.display = (activeSourceFilter !== 'all' || activeSearchQuery) ? 'inline-flex' : 'none';
+      }
+    }
+
+    // Handle filter button clicks
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        activeSourceFilter = btn.getAttribute('data-source');
+        applyDatasetFilters();
+        applySchemaFilters();
+      });
+      // Keyboard support
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          btn.click();
+        }
+      });
+    });
+
+    // Clear filters button
+    const clearFiltersBtn = document.createElement('button');
+    clearFiltersBtn.id = 'clear-filters';
+    clearFiltersBtn.type = 'button';
+    clearFiltersBtn.className = 'filter-btn';
+    clearFiltersBtn.style.display = 'none';
+    clearFiltersBtn.innerHTML = '✕ Limpar filtros';
+    clearFiltersBtn.addEventListener('click', () => {
+      activeSourceFilter = 'all';
+      activeSearchQuery = '';
+      activeSchemaSearchQuery = '';
+      filterButtons.forEach(b => b.classList.remove('active'));
+      const allBtn = document.querySelector('.filter-btn[data-source="all"]');
+      if (allBtn) allBtn.classList.add('active');
+      const datasetSearchInput = document.getElementById('dataset-search');
+      const schemaSearchInput = document.getElementById('schema-search');
+      if (datasetSearchInput) { datasetSearchInput.value = ''; document.getElementById('dataset-search-clear').style.display = 'none'; }
+      if (schemaSearchInput) { schemaSearchInput.value = ''; document.getElementById('schema-search-clear').style.display = 'none'; }
+      applyDatasetFilters();
+      applySchemaFilters();
+    });
+    const filterContainer = document.querySelector('.datasets-filter');
+    if (filterContainer) filterContainer.appendChild(clearFiltersBtn);
+
+    // Handle dataset search input with debounce and clear button
+    const datasetSearchInput = document.getElementById('dataset-search');
+    const datasetSearchClear = document.getElementById('dataset-search-clear');
+    if (datasetSearchInput) {
+      const debouncedFilter = debounce(() => {
+        activeSearchQuery = datasetSearchInput.value.toLowerCase().trim();
+        if (datasetSearchClear) datasetSearchClear.style.display = activeSearchQuery ? 'block' : 'none';
+        applyDatasetFilters();
+      }, 200);
+      datasetSearchInput.addEventListener('input', debouncedFilter);
+      if (datasetSearchClear) {
+        datasetSearchClear.addEventListener('click', () => {
+          datasetSearchInput.value = '';
+          datasetSearchClear.style.display = 'none';
+          activeSearchQuery = '';
+          applyDatasetFilters();
+        });
+      }
+    }
+
+    // Handle schema search input with debounce and clear button
+    const schemaSearchInput = document.getElementById('schema-search');
+    const schemaSearchClear = document.getElementById('schema-search-clear');
+    if (schemaSearchInput) {
+      const debouncedFilter = debounce(() => {
+        activeSchemaSearchQuery = schemaSearchInput.value.toLowerCase().trim();
+        if (schemaSearchClear) schemaSearchClear.style.display = activeSchemaSearchQuery ? 'block' : 'none';
+        applySchemaFilters();
+      }, 200);
+      schemaSearchInput.addEventListener('input', debouncedFilter);
+      if (schemaSearchClear) {
+        schemaSearchClear.addEventListener('click', () => {
+          schemaSearchInput.value = '';
+          schemaSearchClear.style.display = 'none';
+          activeSchemaSearchQuery = '';
+          applySchemaFilters();
+        });
+      }
+    }
+  }
+
+  // Schema filter function (standalone for schemas-only usage)
+  function applySchemaFilters() {
+    const schemaCards = document.querySelectorAll('.schema-card');
+    const noResults = document.getElementById('schema-no-results');
+    let visibleCount = 0;
+
+    schemaCards.forEach(card => {
+      const cardSource = card.getAttribute('data-source-mapped');
+      const sourceMatch = (activeSourceFilter === 'all' || cardSource === activeSourceFilter);
+      
+      let searchMatch = true;
+      if (activeSchemaSearchQuery) {
+        const title = (card.querySelector('.schema-card-title')?.textContent || '').toLowerCase();
+        const files = (card.querySelector('.schema-csv-name')?.textContent || '').toLowerCase();
+        const columns = Array.from(card.querySelectorAll('.schema-table tbody tr td:first-child')).map(td => td.textContent.toLowerCase()).join(' ');
+        
+        const text = `${title} ${files} ${columns}`;
+        searchMatch = text.includes(activeSchemaSearchQuery);
+      }
+      
+      if (sourceMatch && searchMatch) {
+        card.classList.remove('filtered-out');
+        card.style.opacity = '0';
+        setTimeout(() => {
+          card.style.opacity = '1';
+          card.style.transition = 'opacity 0.3s ease';
+        }, 10);
+        visibleCount++;
+      } else {
+        card.classList.add('filtered-out');
+      }
+    });
+
+    if (noResults) {
+      noResults.classList.toggle('visible', visibleCount === 0);
+    }
+  }
+
+  // Load and render schemas dynamically
+  async function loadSchemas() {
+    const container = document.getElementById('schema-grid');
+    if (!container) return;
+
+    try {
+      const response = await fetch('./data/schemas.json');
+      if (!response.ok) throw new Error('Falha ao carregar schemas.json');
+      const schemas = await response.json();
+
+      container.innerHTML = schemas.map(schema => {
+        const fieldsHtml = schema.fields.map(field => {
+          let exVal = field.example || '';
+          if (exVal === 'nan' || exVal === 'None') exVal = '';
+          if (exVal.length > 40) exVal = exVal.slice(0, 37) + '...';
+          
+          return `
+            <tr>
+              <td>${field.name}</td>
+              <td><span class="type-badge">${field.type}</span></td>
+              <td>${exVal}</td>
+            </tr>`;
+        }).join('');
+
+        return `
+          <div class="schema-card" data-source-mapped="${schema.source}">
+            <div class="schema-card-header">
+              <span class="schema-card-title">${schema.title}</span>
+              <span class="schema-csv-name">${schema.files}</span>
+            </div>
+            <table class="schema-table">
+              <thead><tr><th>Campo</th><th>Tipo</th><th>Exemplo</th></tr></thead>
+              <tbody>
+                ${fieldsHtml}
+              </tbody>
+            </table>
+          </div>`;
+      }).join('') + `
+        <div class="no-results" id="schema-no-results">
+          <div class="no-results-icon">🔍</div>
+          <div class="no-results-title">Nenhuma coluna encontrada</div>
+          <div class="no-results-desc">Tente alterar os filtros ou buscar por outro termo.</div>
+        </div>`;
+
+      applySchemaFilters();
+
+    } catch (err) {
+      console.error('Erro ao carregar os schemas:', err);
+      container.innerHTML = getErrorStateHtml(
+        'Erro ao carregar as estruturas',
+        'Não foi possível obter as informações de estrutura de dados (schemas). Por favor, verifique sua conexão ou tente recarregar a página.'
+      );
+    }
+  }
+
+  // Pandas import snippet copy-to-clipboard buttons initialization
+  function initPandasCopyButtons() {
+    document.querySelectorAll('.dataset-card').forEach(card => {
+      const downloadBtn = card.querySelector('.download-btn');
+      if (!downloadBtn) return;
+      
+      const csvUrl = downloadBtn.getAttribute('href');
+      if (!csvUrl) return;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.title = 'Copiar código de importação do Pandas';
+      copyBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+        </svg>
+        Pandas
+      `;
+      
+      copyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const code = `import pandas as pd\ndf = pd.read_csv("${csvUrl}")`;
+        
+        navigator.clipboard.writeText(code).then(() => {
+          const originalText = copyBtn.innerHTML;
+          copyBtn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px; color: #00e5a0;">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Copiado!
+          `;
+          copyBtn.style.borderColor = '#00e5a0';
+          copyBtn.style.color = '#00e5a0';
+          
+          setTimeout(() => {
+            copyBtn.innerHTML = originalText;
+            copyBtn.style.borderColor = '';
+            copyBtn.style.color = '';
+          }, 2000);
+        }).catch(err => {
+          console.error('Erro ao copiar:', err);
+        });
+      });
+      
+      // Wrap copy and download buttons in a container for correct layout alignment
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'flex';
+      wrapper.style.gap = '0.5rem';
+      
+      downloadBtn.parentNode.insertBefore(wrapper, downloadBtn);
+      wrapper.appendChild(copyBtn);
+      wrapper.appendChild(downloadBtn);
+    });
+  }
+
+  // Load and render pipeline health status dynamically
+  async function loadPipelineStatus() {
+    let statusData = window.PULSERATINGS_PIPELINE_STATUS;
+    if (!statusData) {
+      try {
+        const response = await fetch('./data/pipeline_status.json');
+        if (response.ok) {
+          statusData = await response.json();
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar pipeline_status.json:', err);
+      }
+    }
+    
+    if (!statusData) {
+      return;
+    }
+    
+    const healthDot = document.getElementById('health-dot');
+    const healthText = document.getElementById('health-text');
+    const healthDetails = document.getElementById('health-details');
+    
+    if (!healthDot || !healthText) return;
+    
+    const status = statusData.status || 'success';
+    const summary = statusData.summary || {};
+    const timestamp = statusData.timestamp || '';
+    
+    let dotColor = '#00e5a0'; // green
+    let dotShadow = '0 0 8px #00e5a0';
+    let statusText = 'Online';
+    
+    if (status === 'error') {
+      dotColor = '#ff3b30'; // red
+      dotShadow = '0 0 8px #ff3b30';
+      statusText = 'Erro no Pipeline';
+    } else if (status === 'warning') {
+      dotColor = '#ffcc00'; // yellow
+      dotShadow = '0 0 8px #ffcc00';
+      statusText = 'Aviso';
+    }
+    
+    healthDot.style.background = dotColor;
+    healthDot.style.boxShadow = dotShadow;
+    healthText.textContent = `Pipeline: ${statusText}`;
+    
+    // Details dropdown
+    let failedScrapersHtml = '';
+    const errorScrapers = [];
+    if (statusData.scrapers) {
+      for (const [name, info] of Object.entries(statusData.scrapers)) {
+        if (info.status === 'error') {
+          errorScrapers.push(name);
+        }
+      }
+    }
+    
+    if (errorScrapers.length > 0) {
+      failedScrapersHtml = `
+        <div style="margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+          <strong style="color: #ff3b30; font-size: 0.75rem;">Falhas:</strong>
+          <ul style="margin: 0.25rem 0 0 1rem; padding: 0; font-size: 0.7rem; color: var(--text2); list-style: square;">
+            ${errorScrapers.map(name => `<li>${name}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+    
+    let driftHtml = '';
+    const driftsCount = summary.drifts || 0;
+    if (driftsCount > 0) {
+      driftHtml = `
+        <div style="margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem; color: #ffcc00; font-size: 0.7rem;">
+          ⚠️ ${driftsCount} schema drift(s) detectado(s)
+        </div>
+      `;
+    }
+
+    const dateFormatted = timestamp ? new Date(timestamp).toLocaleString('pt-BR') : 'Desconhecido';
+    
+    if (healthDetails) {
+      healthDetails.innerHTML = `
+        <div class="status-item">
+          <span>Total de Scrapers:</span>
+          <strong>${summary.total || 0}</strong>
+        </div>
+        <div class="status-item" style="color: #00e5a0;">
+          <span>Sucesso:</span>
+          <strong>${summary.success || 0}</strong>
+        </div>
+        <div class="status-item" style="color: #ff3b30;">
+          <span>Falhas:</span>
+          <strong>${summary.failed || 0}</strong>
+        </div>
+        <div class="status-item" style="font-size: 0.7rem; color: var(--text3); margin-top: 0.5rem;">
+          <span>Última Execução:</span>
+          <span>${dateFormatted}</span>
+        </div>
+        ${failedScrapersHtml}
+        ${driftHtml}
+      `;
+    }
+  }
+
+  // Pipeline health dropdown toggle (accessible: click + keyboard)
+  function initPipelineHealth() {
+    const trigger = document.getElementById('health-trigger');
+    const dropdown = document.getElementById('health-dropdown');
+    if (!trigger || !dropdown) return;
+
+    function toggleDropdown(expanded) {
+      dropdown.hidden = !expanded;
+      trigger.setAttribute('aria-expanded', expanded);
+    }
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleDropdown(dropdown.hidden);
+    });
+
+    trigger.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleDropdown(dropdown.hidden);
+      }
+      if (e.key === 'Escape' && !dropdown.hidden) {
+        toggleDropdown(false);
+        trigger.focus();
+      }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!dropdown.hidden && !e.target.closest('.pipeline-health-container')) {
+        toggleDropdown(false);
+      }
+    });
+  }
+
+  // Mobile hamburger menu
+  function initMobileMenu() {
+    const btn = document.querySelector('.mobile-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    if (!btn || !navLinks) return;
+
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', !expanded);
+      navLinks.classList.toggle('nav-open');
+    });
+  }
+
+  // Footer year dynamic
+  function setFooterYear() {
+    const year = new Date().getFullYear();
+    document.querySelectorAll('.footer-copy').forEach(el => {
+      el.textContent = el.textContent.replace('2026', year);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    initDatasetsViewToggle();
+    await loadAndRenderDatasets();
+    await loadLastUpdates();
+    await loadSchemas();
+    initDatasetFilters();
+    initPipelineHealth();
+    await loadPipelineStatus();
+    initMobileMenu();
+    setFooterYear();
+  });
+</script>
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "Pulse Ratings — Brazilian Corporate & Sovereign Credit Ratings",
+  "description": "Ratings de crédito corporativo e soberano do Brasil (S&P, Moody's e Fitch) estruturados, atualizados diariamente e prontos para uso em BI, ETL e modelos de risco. Desenvolvido pela Pulse Data Labs.",
+  "url": "https://pulsedatalabs.github.io/PulseRatingsBrasil-web/",
+  "sameAs": "https://github.com/PulseDataLabs/PulseRatingsBrasil",
+  "creator": {
+    "@type": "Organization",
+    "name": "Pulse Data Labs",
+    "url": "https://github.com/PulseDataLabs"
+  },
+  "distribution": [
+    {"@type": "DataDownload", "encodingFormat": "CSV", "contentUrl": "https://raw.githubusercontent.com/PulseDataLabs/PulseRatingsBrasil-web/main/data/fitch_ratings.csv"},
+    {"@type": "DataDownload", "encodingFormat": "CSV", "contentUrl": "https://raw.githubusercontent.com/PulseDataLabs/PulseRatingsBrasil-web/main/data/fitch_emissores.csv"},
+    {"@type": "DataDownload", "encodingFormat": "CSV", "contentUrl": "https://raw.githubusercontent.com/PulseDataLabs/PulseRatingsBrasil-web/main/data/moodys_emissores.csv"},
+    {"@type": "DataDownload", "encodingFormat": "CSV", "contentUrl": "https://raw.githubusercontent.com/PulseDataLabs/PulseRatingsBrasil-web/main/data/standard_and_poors_emissores.csv"},
+    {"@type": "DataDownload", "encodingFormat": "CSV", "contentUrl": "https://raw.githubusercontent.com/PulseDataLabs/PulseRatingsBrasil-web/main/data/emissores_consolidado.csv"}
+  ],
+  "temporalCoverage": "2025/2026",
+  "spatialCoverage": "Brazil",
+  "inLanguage": "pt-BR"
+}
+</script>
+</body>
+</html>
