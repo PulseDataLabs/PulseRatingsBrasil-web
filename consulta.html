@@ -1,0 +1,3053 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Consulta de ratings de crédito corporativo e soberano do Brasil por emissor ou CNPJ (S&P, Moody's, Fitch, Austin Ratings, Liberum)" />
+  <meta property="og:title" content="Pulse Ratings — Consulta" />
+  <meta property="og:description" content="Busque ratings por emissor ou CNPJ. Dados de S&P, Moody's, Fitch, Austin Ratings e Liberum para o mercado brasileiro." />
+  <title>Consulta — Pulse Ratings | Pulse Data Labs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <link rel="preload" href="./data/emissores_rating.json" as="fetch" crossorigin />
+  <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/responsive/3.0.4/css/responsive.dataTables.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.2.2/css/buttons.dataTables.min.css" />
+  <link rel="canonical" href="https://pulsedatalabs.github.io/PulseRatingsBrasil-web/consulta.html" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c10;
+      --bg2:       #0d1218;
+      --bg3:       #111820;
+      --surface:   #141c26;
+      --surface2:  #192433;
+      --border:    #1e2d3d;
+      --border2:   #243444;
+      --accent:    #00d4ff;
+      --accent2:   #0095c8;
+      --gold:      #f0b429;
+      --gold2:     #c8902a;
+      --green:     #00e5a0;
+      --red:       #ff4d6d;
+      --text:      #e8eef4;
+      --text2:     #8fa3b8;
+      --text3:     #5a7288;
+      --font-head: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-body: 'Lora', serif;
+      --fitch:     #00e5a0;
+      --moodys:    #5b9bd5;
+      --sp:        #f0b429;
+      --austin:    #c084fc;
+      --liberum:   #fb923c;
+
+      /* Layout tokens */
+      --page-max:  1200px;
+      --gap:       1.5rem;
+      --radius:    8px;
+      --radius-sm: 5px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: #66e5ff; }
+
+    /* ── Skip link ──────────────────────── */
+    .skip-link {
+      position: absolute; top: -100%; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: var(--bg); padding: 0.75rem 1.5rem;
+      border-radius: 0 0 8px 8px; font-family: var(--font-mono); font-size: 0.8rem;
+      font-weight: 500; z-index: 1000; text-decoration: none; transition: top 0.2s;
+    }
+    .skip-link:focus { top: 0; }
+
+    /* ── Nav ────────────────────────────── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-family: var(--font-head); font-weight: 700; font-size: 1rem;
+      color: var(--text); text-decoration: none;
+    }
+    .nav-logo .pulse-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent2);
+      flex-shrink: 0;
+    }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; align-items: center; }
+    .nav-links a {
+      font-family: var(--font-mono); font-size: 0.8rem;
+      color: var(--text2); transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links a.active { color: var(--accent); }
+    .nav-cta {
+      display: inline-block; padding: 0.4rem 1rem;
+      background: transparent; color: var(--accent);
+      border: 1px solid var(--accent2); border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      transition: background 0.2s, color 0.2s;
+    }
+    .nav-cta:hover { background: var(--accent); color: var(--bg); }
+
+    /* ── Page wrapper ───────────────────── */
+    .page-container {
+      max-width: var(--page-max);
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── Hero ────────────────────────────── */
+    .hero {
+      padding: 2.5rem 0 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-inner {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .hero-text h1 {
+      font-family: var(--font-head); font-size: 1.75rem; font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    .hero-text h1 span {
+      background: linear-gradient(135deg, var(--accent), #66e5ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-text p {
+      color: var(--text2); font-size: 0.9rem; margin-top: 0.4rem;
+    }
+
+    /* ── Stats ───────────────────────────── */
+    .stats-bar {
+      display: flex; gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .stat-item {
+      font-family: var(--font-mono);
+      text-align: center;
+      padding: 0.75rem 1.25rem;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-value {
+      font-size: 1.2rem; font-weight: 600; color: var(--accent);
+      display: block; line-height: 1.2;
+    }
+    .stat-label {
+      font-size: 0.65rem; color: var(--text3); text-transform: uppercase;
+      letter-spacing: 0.07em; display: block; margin-top: 0.1rem;
+    }
+    .stat-item.fitch   .stat-value { color: var(--fitch); }
+    .stat-item.moodys  .stat-value { color: var(--moodys); }
+    .stat-item.sp      .stat-value { color: var(--sp); }
+    .stat-item.austin  .stat-value { color: var(--austin); }
+    .stat-item.liberum .stat-value { color: var(--liberum); }
+
+    /* ── Main Tabs ────────────────────────────────────────── */
+    .main-tabs {
+      display: flex; gap: 1.5rem; border-bottom: 1px solid var(--border1); margin-bottom: 1.5rem;
+    }
+    .main-tab-btn {
+      padding: 0.75rem 0.5rem; border: none; background: none; color: var(--text3); font-weight: 500; font-size: 1rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    .main-tab-btn:hover { color: var(--text1); }
+    .main-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .main-view { display: none; }
+    .main-view.active { display: block; }
+
+    /* ── Comparator Matrix Enhancements (Terminal Institucional) ─ */
+    .comparator-header-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.25rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .comparator-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .comp-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.85rem 1.1rem;
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      transition: border-color 0.2s;
+    }
+    .comp-card:hover {
+      border-color: var(--border2);
+    }
+    .comp-card-val {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--font-mono);
+      line-height: 1.2;
+    }
+    .comp-card-lbl {
+      font-size: 0.65rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: var(--font-mono);
+    }
+    
+    .comp-toolbar-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .comp-search-bar {
+      position: relative;
+      flex: 1;
+      min-width: 280px;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+    }
+    .comp-search-input {
+      width: 100%;
+      padding: 0.6rem 2.2rem 0.6rem 2.3rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .comp-search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+    }
+    .comp-search-icon {
+      position: absolute;
+      left: 0.85rem;
+      color: var(--accent);
+      pointer-events: none;
+      opacity: 0.85;
+    }
+    .comp-search-clear {
+      position: absolute;
+      right: 0.75rem;
+      background: none;
+      border: none;
+      color: var(--text3);
+      cursor: pointer;
+      display: none;
+      font-size: 0.85rem;
+      padding: 2px 6px;
+    }
+
+    .comp-matrix-wrapper {
+      max-height: 68vh;
+      overflow: auto;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: #090e15;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+      position: relative;
+    }
+    .comp-matrix {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 880px;
+      font-size: 0.82rem;
+    }
+    .comp-matrix th,
+    .comp-matrix td {
+      padding: 0.7rem 0.95rem;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .comp-matrix thead th {
+      background: #0d1522;
+      color: var(--text2);
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      position: sticky;
+      top: 0;
+      z-index: 25;
+      border-bottom: 2px solid var(--border2);
+      border-top: none;
+      white-space: nowrap;
+    }
+    .comp-matrix thead th.comp-th-emissor {
+      position: sticky;
+      left: 0;
+      top: 0;
+      z-index: 35;
+      background: #090f18;
+      width: 270px;
+      min-width: 270px;
+      border-right: 2px solid var(--border2);
+    }
+    .comp-matrix tbody td.comp-td-emissor {
+      position: sticky;
+      left: 0;
+      z-index: 15;
+      background: #0b111a;
+      border-right: 2px solid var(--border2);
+      box-shadow: 3px 0 8px rgba(0, 0, 0, 0.35);
+    }
+    .comp-matrix tbody tr:nth-child(even) td {
+      background-color: rgba(255, 255, 255, 0.015);
+    }
+    .comp-matrix tbody tr:nth-child(even) td.comp-td-emissor {
+      background-color: #0d1520;
+    }
+    .comp-matrix tbody tr:hover td {
+      background-color: rgba(0, 212, 255, 0.04) !important;
+    }
+    .comp-matrix tbody tr:hover td.comp-td-emissor {
+      background-color: #121c2b !important;
+    }
+
+    /* Rating Boxes inside Comparator Matrix */
+    .comp-rating-card {
+      background: #111823;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.35rem 0.55rem;
+      min-width: 135px;
+      margin-bottom: 0.3rem;
+      transition: border-color 0.2s;
+    }
+    .comp-rating-card:last-child {
+      margin-bottom: 0;
+    }
+    .comp-rating-card:hover {
+      border-color: var(--border2);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .comp-rating-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+    .comp-rating-tag {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .comp-rating-tag.grade-aaa,
+    .comp-rating-tag.grade-aa {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .comp-rating-tag.grade-a {
+      background: rgba(14, 165, 233, 0.12);
+      border: 1px solid rgba(14, 165, 233, 0.3);
+      color: #38bdf8;
+    }
+    .comp-rating-tag.grade-bbb {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+    .comp-rating-tag.grade-bb {
+      background: rgba(249, 115, 22, 0.12);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      color: #fb923c;
+    }
+    .comp-rating-tag.grade-b,
+    .comp-rating-tag.grade-c,
+    .comp-rating-tag.grade-d {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+    .comp-rating-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+      margin-top: 0.25rem;
+    }
+    .comp-rating-inst-text {
+      font-size: 0.62rem;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 125px;
+    }
+    .comp-rating-dt-text {
+      font-size: 0.62rem;
+      color: var(--text3);
+      font-family: var(--font-mono);
+    }
+    .comp-empty-dash {
+      color: #475569;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      display: block;
+      text-align: center;
+    }
+
+    /* ── Toolbar (filters + export) ─────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1.25rem 0;
+      flex-wrap: wrap;
+    }
+    .toolbar-search {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+    .toolbar-search svg {
+      position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%);
+      color: var(--text3); pointer-events: none;
+    }
+    .toolbar-search input {
+      width: 100%;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 0.55rem 0.75rem 0.55rem 2.1rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 0.8rem;
+      transition: border-color 0.2s;
+    }
+    .toolbar-search input:focus { outline: none; border-color: var(--accent); }
+    .toolbar-search input::placeholder { color: var(--text3); }
+
+    .sector-dropdown {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 0.55rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 0.8rem;
+      transition: border-color 0.2s;
+      outline: none;
+      min-width: 180px;
+      cursor: pointer;
+    }
+    .sector-dropdown:focus { border-color: var(--accent); }
+
+    .toolbar-divider {
+      width: 1px; height: 28px; background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .agency-checkboxes {
+      display: flex; gap: 0.5rem; align-items: center;
+      flex-wrap: wrap;
+    }
+    .agency-checkboxes input[type="checkbox"] { display: none; }
+    .agency-toggle {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-family: var(--font-mono); font-size: 0.75rem;
+      cursor: pointer; transition: all 0.15s;
+      color: var(--text3);
+      user-select: none;
+    }
+    .agency-toggle .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .agency-toggle.fitch  .dot { background: var(--fitch); }
+    .agency-toggle.moodys .dot { background: var(--moodys); }
+    .agency-toggle.sp     .dot { background: var(--sp); }
+
+    input[type="checkbox"]:checked + .agency-toggle.fitch   { border-color: var(--fitch);   color: var(--fitch);   background: rgba(0,229,160,0.08); }
+    input[type="checkbox"]:checked + .agency-toggle.moodys  { border-color: var(--moodys);  color: var(--moodys);  background: rgba(91,155,213,0.08); }
+    input[type="checkbox"]:checked + .agency-toggle.sp      { border-color: var(--sp);      color: var(--sp);      background: rgba(240,180,41,0.08); }
+    input[type="checkbox"]:checked + .agency-toggle.austin  { border-color: var(--austin);  color: var(--austin);  background: rgba(192,132,252,0.08); }
+    input[type="checkbox"]:checked + .agency-toggle.liberum { border-color: var(--liberum); color: var(--liberum); background: rgba(251,146,60,0.08); }
+
+    .agency-toggle.austin  .dot { background: var(--austin); }
+    .agency-toggle.liberum .dot { background: var(--liberum); }
+
+    .export-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.5rem 0.9rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text2);
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .export-btn:hover { border-color: var(--accent2); color: var(--accent); background: var(--surface2); }
+
+    /* ── Table container ─────────────────── */
+    .table-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+
+    /* DataTables overrides */
+    .dataTables_wrapper {
+      font-family: var(--font-mono);
+    }
+
+    /* Top bar: length + filter */
+    .dt-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .dataTables_length label {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.75rem; color: var(--text2);
+    }
+    .dataTables_length select {
+      background: var(--bg3); border: 1px solid var(--border2);
+      color: var(--text); border-radius: var(--radius-sm);
+      padding: 0.3rem 0.5rem;
+      font-family: var(--font-mono); font-size: 0.75rem;
+    }
+    .dataTables_length select:focus { outline: none; border-color: var(--accent); }
+
+    .dataTables_filter { display: none; } /* using custom search */
+
+    /* Table */
+    table.dataTable {
+      width: 100% !important;
+      background: transparent !important;
+      font-size: 0.82rem;
+      border-collapse: collapse;
+      margin: 0 !important;
+    }
+    table.dataTable thead th {
+      background: var(--bg3) !important;
+      color: var(--text3) !important;
+      border-bottom: 1px solid var(--border) !important;
+      border-top: none !important;
+      font-family: var(--font-mono); font-size: 0.68rem;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      padding: 0.6rem 0.75rem !important;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    table.dataTable thead th:first-child { padding-left: 1rem !important; }
+    table.dataTable thead th:last-child  { padding-right: 1rem !important; }
+
+    table.dataTable tbody td {
+      border-bottom: 1px solid var(--border) !important;
+      padding: 0.55rem 0.75rem !important;
+      vertical-align: middle;
+      color: var(--text);
+    }
+    table.dataTable tbody td:first-child { padding-left: 1rem !important; }
+    table.dataTable tbody td:last-child  { padding-right: 1rem !important; }
+
+    table.dataTable tbody tr { background: transparent !important; }
+    table.dataTable tbody tr:last-child td { border-bottom: none !important; }
+    table.dataTable tbody tr:hover td { background: rgba(0,212,255,0.03) !important; }
+
+    /* Bottom bar */
+    .dt-bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .dataTables_info {
+      font-size: 0.72rem; color: var(--text3);
+    }
+    .dataTables_paginate {
+      display: flex; gap: 0.25rem; align-items: center;
+    }
+    .dataTables_paginate .paginate_button {
+      background: var(--bg3) !important;
+      color: var(--text2) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-sm) !important;
+      padding: 0.3rem 0.6rem !important;
+      font-size: 0.72rem !important;
+      cursor: pointer; transition: all 0.15s;
+      line-height: 1.4;
+    }
+    .dataTables_paginate .paginate_button:hover:not(.disabled) {
+      background: var(--surface2) !important;
+      color: var(--accent) !important;
+      border-color: var(--accent2) !important;
+    }
+    .dataTables_paginate .paginate_button.current {
+      background: var(--accent2) !important;
+      color: var(--bg) !important;
+      border-color: var(--accent) !important;
+      font-weight: 600;
+    }
+    .dataTables_paginate .paginate_button.disabled {
+      opacity: 0.35; cursor: default !important;
+    }
+    .dataTables_wrapper .dt-layout-row { display: none; } /* we use custom layout */
+
+    /* Cell styles */
+    .cnpj-cell {
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3);
+      white-space: nowrap; letter-spacing: 0.02em;
+    }
+    .emissor-cell {
+      font-weight: 500; color: var(--text); font-size: 0.84rem;
+    }
+    .rating-cell {
+      font-family: var(--font-mono); font-weight: 600; font-size: 0.85rem;
+    }
+    .date-cell {
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3);
+      white-space: nowrap;
+    }
+
+    /* Agency badge */
+    .badge {
+      display: inline-block; padding: 0.18rem 0.55rem; border-radius: 4px;
+      font-family: var(--font-mono); font-size: 0.68rem; font-weight: 500;
+      letter-spacing: 0.02em; white-space: nowrap;
+    }
+    .badge-fitch   { background: rgba(0,229,160,0.12);   color: var(--fitch);   border: 1px solid rgba(0,229,160,0.2); }
+    .badge-moodys  { background: rgba(91,155,213,0.12);  color: var(--moodys);  border: 1px solid rgba(91,155,213,0.2); }
+    .badge-sp      { background: rgba(240,180,41,0.12);  color: var(--sp);      border: 1px solid rgba(240,180,41,0.2); }
+    .badge-austin  { background: rgba(192,132,252,0.12); color: var(--austin);  border: 1px solid rgba(192,132,252,0.2); }
+    .badge-liberum { background: rgba(251,146,60,0.12);  color: var(--liberum); border: 1px solid rgba(251,146,60,0.2); }
+    .badge-other   { background: rgba(142,163,184,0.1);  color: var(--text2);   border: 1px solid rgba(142,163,184,0.15); }
+
+    /* Outlook */
+    .outlook-cell { font-family: var(--font-mono); font-size: 0.75rem; }
+    .outlook-stable    { color: var(--green); }
+    .outlook-positive  { color: var(--accent); }
+    .outlook-negative  { color: var(--red); }
+    .outlook-developing { color: var(--gold); }
+    .outlook-withdrawn  { color: var(--text3); }
+
+    /* ── View toggle switch ─────────────────── */
+    .view-toggle {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-family: var(--font-mono); font-size: 0.75rem; color: var(--text2);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .view-toggle input[type="checkbox"] { display: none; }
+    .toggle-track {
+      position: relative; width: 36px; height: 20px;
+      background: var(--border2); border-radius: 10px;
+      transition: background 0.2s; flex-shrink: 0;
+    }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--text3); transition: all 0.2s;
+    }
+    .view-toggle input:checked ~ .toggle-track { background: var(--accent2); }
+    .view-toggle input:checked ~ .toggle-track .toggle-thumb {
+      left: 19px; background: var(--accent);
+    }
+    .toggle-label-off { color: var(--text2); }
+    .toggle-label-on  { color: var(--text3); }
+    .view-toggle input:checked ~ .toggle-label-off { color: var(--text3); }
+    .view-toggle input:checked ~ .toggle-label-on  { color: var(--accent); }
+
+    /* ── Clickable row ───────────────────────── */
+    table.dataTable tbody tr.clickable-row { cursor: pointer; }
+    table.dataTable tbody tr.clickable-row:hover td {
+      background: rgba(0,212,255,0.06) !important;
+    }
+    table.dataTable tbody tr.row-active td {
+      background: rgba(0,212,255,0.09) !important;
+    }
+
+    /* ── Drawer overlay ─────────────────────── */
+    .drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+    /* ── Drawer panel ───────────────────────── */
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(560px, 100vw);
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      z-index: 201;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+      overflow: hidden;
+    }
+    .drawer.open { transform: translateX(0); }
+
+    /* Drawer header */
+    .drawer-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .drawer-header-left { flex: 1; min-width: 0; }
+    .drawer-emissor-name {
+      font-family: var(--font-head); font-size: 1.05rem; font-weight: 700;
+      color: var(--text); line-height: 1.25;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .drawer-cnpj {
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3);
+      margin-top: 0.2rem;
+    }
+    .drawer-close {
+      background: none; border: 1px solid var(--border); color: var(--text2);
+      width: 32px; height: 32px; border-radius: var(--radius-sm);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.15s;
+    }
+    .drawer-close:hover { border-color: var(--accent2); color: var(--accent); background: rgba(0,212,255,0.06); }
+
+    /* Drawer summary pills */
+    .drawer-summary {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .summary-pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.65rem; border-radius: 20px;
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .summary-pill .pill-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .summary-pill.fitch   { background: rgba(0,229,160,0.1);   color: var(--fitch);   border-color: rgba(0,229,160,0.2); }
+    .summary-pill.fitch   .pill-dot { background: var(--fitch); }
+    .summary-pill.moodys  { background: rgba(91,155,213,0.1);  color: var(--moodys);  border-color: rgba(91,155,213,0.2); }
+    .summary-pill.moodys  .pill-dot { background: var(--moodys); }
+    .summary-pill.sp      { background: rgba(240,180,41,0.1);  color: var(--sp);      border-color: rgba(240,180,41,0.2); }
+    .summary-pill.sp      .pill-dot { background: var(--sp); }
+    .summary-pill.austin  { background: rgba(192,132,252,0.1); color: var(--austin);  border-color: rgba(192,132,252,0.2); }
+    .summary-pill.austin  .pill-dot { background: var(--austin); }
+    .summary-pill.liberum { background: rgba(251,146,60,0.1);  color: var(--liberum); border-color: rgba(251,146,60,0.2); }
+    .summary-pill.liberum .pill-dot { background: var(--liberum); }
+
+    /* Drawer body (scrollable) */
+    .drawer-body {
+      flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem;
+    }
+    .drawer-body::-webkit-scrollbar { width: 5px; }
+    .drawer-body::-webkit-scrollbar-track { background: transparent; }
+    .drawer-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+    /* Agency section inside drawer */
+    .agency-section { margin-bottom: 1.5rem; }
+    .agency-section:last-child { margin-bottom: 0; }
+    .agency-section-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.65rem;
+    }
+    .agency-section-title {
+      font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .agency-section-divider {
+      flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* Rating card inside drawer */
+    .rating-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem; position: relative;
+      transition: border-color 0.15s;
+    }
+    .rating-card:last-child { margin-bottom: 0; }
+    .rating-card:hover { border-color: var(--border2); }
+
+    .rating-card-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+    .rc-tipo {
+      font-family: var(--font-mono); font-size: 0.68rem;
+      color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .rc-rating {
+      font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;
+      color: var(--text);
+    }
+    .rating-card-instrument {
+      font-size: 0.8rem; color: var(--text2); margin-bottom: 0.4rem;
+      font-style: italic;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rating-card-bottom {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    }
+    .rc-outlook {
+      font-family: var(--font-mono); font-size: 0.72rem;
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .rc-outlook::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+    .rc-date {
+      font-family: var(--font-mono); font-size: 0.7rem; color: var(--text3);
+      margin-left: auto;
+    }
+
+    /* Drawer empty state */
+    .drawer-empty {
+      text-align: center; padding: 3rem 1rem;
+      font-family: var(--font-mono); font-size: 0.8rem; color: var(--text3);
+    }
+
+    @media (max-width: 600px) {
+      .drawer { width: 100vw; }
+      .drawer-body { padding: 1rem; }
+      .drawer-header { padding: 1rem; }
+      .drawer-summary { padding: 0.6rem 1rem; }
+    }
+    .loading {
+      text-align: center; padding: 4rem 1rem;
+      font-family: var(--font-mono); color: var(--text2);
+    }
+    .loading .spinner {
+      width: 30px; height: 30px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error {
+      text-align: center; padding: 3rem 1rem; color: var(--red);
+      font-family: var(--font-mono); font-size: 0.85rem;
+    }
+
+    /* ── Footer ──────────────────────────── */
+    footer {
+      text-align: center; padding: 1.75rem 1rem;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3);
+    }
+    footer a { color: var(--text2); }
+    footer a:hover { color: var(--accent); }
+    .footer-inner { display: flex; align-items: center; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+
+    /* ── Responsive ──────────────────────── */
+    @media (max-width: 900px) {
+      .hero-inner { flex-direction: column; align-items: flex-start; }
+      .stats-bar { width: 100%; justify-content: stretch; }
+      .stat-item { flex: 1; }
+    }
+    @media (max-width: 768px) {
+      .page-container { padding: 0 1rem; }
+      nav { padding: 0 1rem; }
+      .nav-links { gap: 1rem; }
+      .hero { padding: 1.75rem 0 1.5rem; }
+      .hero-text h1 { font-size: 1.35rem; }
+      .toolbar { gap: 0.5rem; }
+      .toolbar-divider { display: none; }
+      .stats-bar { flex-wrap: wrap; }
+    }
+    @media (max-width: 480px) {
+      .hero-text h1 { font-size: 1.15rem; }
+      .stat-item { padding: 0.6rem 0.75rem; }
+    }
+
+    /* ── Seção de Movimentações Recentes ── */
+    .updates-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .updates-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+    .updates-title {
+      font-family: var(--font-head);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .updates-tabs {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+    .update-tab-btn {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 0.35rem 0.65rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+    .update-tab-btn:hover {
+      border-color: var(--border2);
+      color: var(--text);
+      background: var(--surface2);
+    }
+    .update-tab-btn.active {
+      background: rgba(0, 212, 255, 0.08);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
+    }
+    .updates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 0.75rem;
+      transition: opacity 0.2s ease;
+      margin-top: 1rem;
+    }
+    .update-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    .update-card:hover {
+      border-color: var(--accent2);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .update-card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text3);
+    }
+    .update-card-meta .date-link {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .update-card-emitter {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .update-card-emitter:hover {
+      color: var(--accent);
+    }
+    .update-card-inst {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text2);
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .update-card-rating {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.2rem;
+      border-top: 1px dashed var(--border);
+      padding-top: 0.4rem;
+    }
+    .update-card-rating .rc-rating {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .update-card-rating .rc-outlook {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+    }
+  
+    /* ── Movimentações View Styles ── */
+    .mov-toolbar-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .mov-view-toggle {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--surface);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    .mov-vtoggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text3);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mov-vtoggle-btn:hover {
+      color: var(--text);
+    }
+    .mov-vtoggle-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+    }
+    .mov-table-wrapper {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-top: 1rem;
+      overflow-x: auto;
+    }
+    #mov-data-table {
+      width: 100% !important;
+    }
+    #mov-data-table tbody tr {
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    #mov-data-table tbody tr:hover td {
+      background: rgba(0, 212, 255, 0.04) !important;
+    }
+    .mov-dt-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .mov-dt-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .mov-header-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .mov-search-bar-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 0.5rem 0 1rem 0;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .mov-search-bar {
+      position: relative;
+      flex: 1;
+      min-width: 320px;
+      display: flex;
+      align-items: center;
+    }
+    .mov-search-icon {
+      position: absolute;
+      left: 1rem;
+      color: var(--accent);
+      pointer-events: none;
+      opacity: 0.85;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .mov-search-bar:focus-within .mov-search-icon {
+      opacity: 1;
+      transform: scale(1.1);
+      color: var(--accent);
+    }
+    .mov-search-bar input {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem 2.8rem 0.75rem 2.9rem;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 0.92rem;
+      letter-spacing: -0.01em;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .mov-search-bar input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg2);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.16), 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .mov-search-bar input::placeholder {
+      color: var(--text3);
+      font-size: 0.85rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .mov-search-clear-btn {
+      position: absolute;
+      right: 0.85rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text3);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      line-height: 1;
+      transition: all 0.15s ease;
+    }
+    .mov-search-clear-btn:hover {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+    .mov-search-badge {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text2);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.9rem;
+      border-radius: var(--radius);
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .mov-search-badge strong {
+      color: var(--accent);
+    }
+    .mov-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .mov-stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mov-stat-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .mov-stat-icon {
+      font-size: 1.5rem;
+    }
+    .mov-stat-val {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .mov-stat-lbl {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text3);
+      text-transform: uppercase;
+      margin-top: 0.2rem;
+    }
+    .mov-filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .mov-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text2);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mov-pill:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+    .mov-period-btn, .mov-agency-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 0.75rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .mov-period-btn:hover, .mov-agency-btn:hover {
+      background: var(--surface2);
+      color: var(--text);
+      border-color: var(--border2);
+    }
+    .mov-period-btn.active {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      border-color: var(--accent);
+    }
+    .mov-agency-btn.active {
+      background: var(--accent2);
+      color: #fff;
+      font-weight: 700;
+      border-color: var(--accent);
+    }
+
+    .mov-pill.active {
+      background: var(--accent2);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .mov-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+    .mov-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .mov-card:hover {
+      border-color: var(--border2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .mov-card.border-upgrade { border-left: 4px solid var(--green); }
+    .mov-card.border-downgrade { border-left: 4px solid var(--red); }
+    .mov-card.border-novo { border-left: 4px solid var(--accent); }
+    .mov-card.border-outlook { border-left: 4px solid var(--gold); }
+    .mov-card.border-retirado { border-left: 4px solid var(--text3); opacity: 0.85; }
+
+    .mov-badge-tag {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tag-upgrade { background: rgba(0,229,160,0.15); color: var(--green); border: 1px solid var(--green); }
+    .tag-downgrade { background: rgba(255,77,109,0.15); color: var(--red); border: 1px solid var(--red); }
+    .tag-novo { background: rgba(0,212,255,0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .tag-outlook { background: rgba(240,180,41,0.15); color: var(--gold); border: 1px solid var(--gold); }
+    .tag-retirado { background: rgba(143,163,184,0.15); color: var(--text2); border: 1px solid var(--text3); }
+
+    .mov-rating-flow {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .mov-old-r { color: var(--text3); text-decoration: line-through; }
+    .mov-arrow { color: var(--text2); font-size: 0.8rem; }
+    .mov-new-r { color: var(--text); }
+
+  </style>
+</head>
+<body>
+
+  <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+
+  <nav>
+    <a href="index.html" class="nav-logo">
+      <span class="pulse-dot"></span>
+      Pulse Ratings
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Início</a></li>
+      <li><a href="consulta.html" class="active">Consulta</a></li>
+      <li><a href="mailto:pulsedatalabs@gmail.com?subject=Pulse Ratings — Interesse Comercial" class="nav-cta">Fale Conosco ↗</a></li>
+    </ul>
+  </nav>
+
+  <main id="main-content">
+    <div class="page-container">
+
+      <!-- Hero + Stats -->
+      <section class="hero">
+        <div class="hero-inner">
+          <div class="hero-text">
+            <h1>Consulta de <span>Ratings</span></h1>
+            <p>Busque ratings de crédito por emissor, CNPJ ou agência — S&amp;P, Moody's, Fitch, Austin Ratings, Liberum</p>
+          </div>
+          <div class="stats-bar" id="stats-bar">
+            <div class="stat-item">
+              <span class="stat-value" id="stat-emissores">—</span>
+              <span class="stat-label">Emissores</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="stat-ratings">—</span>
+              <span class="stat-label">Ratings</span>
+            </div>
+            <div class="stat-item fitch">
+              <span class="stat-value" id="stat-fitch">—</span>
+              <span class="stat-label">Fitch</span>
+            </div>
+            <div class="stat-item moodys">
+              <span class="stat-value" id="stat-moodys">—</span>
+              <span class="stat-label">Moody's</span>
+            </div>
+            <div class="stat-item sp">
+              <span class="stat-value" id="stat-sp">—</span>
+              <span class="stat-label">S&amp;P</span>
+            </div>
+            <div class="stat-item austin">
+              <span class="stat-value" id="stat-austin">—</span>
+              <span class="stat-label">Austin</span>
+            </div>
+            <div class="stat-item liberum">
+              <span class="stat-value" id="stat-liberum">—</span>
+              <span class="stat-label">Liberum</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção de Movimentações Recentes (Últimas Atribuições) -->
+      <section class="updates-section" aria-label="Últimas atribuições de rating">
+        <div class="updates-header">
+          <h2 class="updates-title">
+            <span style="color: var(--accent);">⚡</span> Últimas Atribuições de Rating
+          </h2>
+          <div class="updates-tabs" role="tablist">
+            <button class="update-tab-btn active" data-agency="Moody's" role="tab" aria-selected="true">Moody's</button>
+            <button class="update-tab-btn" data-agency="Fitch" role="tab" aria-selected="false">Fitch</button>
+            <button class="update-tab-btn" data-agency="S&P" role="tab" aria-selected="false">S&amp;P</button>
+            <button class="update-tab-btn" data-agency="Austin" role="tab" aria-selected="false">Austin</button>
+            <button class="update-tab-btn" data-agency="Liberum" role="tab" aria-selected="false">Liberum</button>
+          </div>
+        </div>
+        <div class="updates-subheader" style="margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.72rem; color: var(--text3);">
+          <span id="agency-period-text">Período de cobertura: —</span>
+        </div>
+        <div class="updates-grid" id="updates-content-list">
+          <!-- Gerado dinamicamente via JS -->
+        </div>
+      </section>
+
+        <!-- Main Tabs -->
+        <div class="main-tabs" role="tablist">
+          <button class="main-tab-btn active" data-target="view-lista" role="tab">Tabela de Ratings</button>
+          <button class="main-tab-btn" data-target="view-comparador" role="tab">Comparador Setorial</button>
+          <button class="main-tab-btn" data-target="view-movimentacoes" role="tab">⚡ Movimentações & Alterações</button>
+        </div>
+
+        <!-- LISTA GERAL -->
+        <div id="view-lista" class="main-view active">
+          <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-input" placeholder="Buscar por emissor, CNPJ, tipo ou rating…" autocomplete="off" />
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div>
+          <select id="sector-filter" class="sector-dropdown">
+            <option value="">Todos os Setores</option>
+          </select>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <div class="agency-checkboxes">
+          <label>
+            <input type="checkbox" value="Fitch" checked />
+            <span class="agency-toggle fitch"><span class="dot"></span>Fitch</span>
+          </label>
+          <label>
+            <input type="checkbox" value="Moody's" checked />
+            <span class="agency-toggle moodys"><span class="dot"></span>Moody's</span>
+          </label>
+          <label>
+            <input type="checkbox" value="S&P" checked />
+            <span class="agency-toggle sp"><span class="dot"></span>S&amp;P</span>
+          </label>
+          <label>
+            <input type="checkbox" value="Austin" checked />
+            <span class="agency-toggle austin"><span class="dot"></span>Austin</span>
+          </label>
+          <label>
+            <input type="checkbox" value="Liberum" checked />
+            <span class="agency-toggle liberum"><span class="dot"></span>Liberum</span>
+          </label>
+        </div>
+
+        <div class="toolbar-divider"></div>
+
+        <label class="view-toggle" title="Alternar entre visão detalhada e visão por emissor">
+          <input type="checkbox" id="toggle-consolidated" />
+          <span class="toggle-label-off">Detalhada</span>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-label-on">Por Emissor</span>
+        </label>
+
+        <div class="toolbar-divider"></div>
+
+        <button class="export-btn" id="export-excel-btn">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exportar Excel
+        </button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-section">
+        <div id="loading" class="loading">
+          <div class="spinner"></div>
+          Carregando dados…
+        </div>
+        <div id="error" class="error" style="display:none;"></div>
+
+        <!-- Custom top bar -->
+        <div id="dt-top-bar" class="dt-top-bar" style="display:none;">
+          <div id="dt-length-container"></div>
+          <div id="dt-info-top" style="font-size:0.72rem; color:var(--text3); font-family:var(--font-mono);"></div>
+        </div>
+
+        <table id="ratings-table" class="display responsive" style="width:100%; display:none;">
+          <thead>
+              <tr>
+                <th>Emissor</th>
+                <th>CNPJ</th>
+                <th>Setor</th>
+                <th>Agência</th>
+                <th>Tipo Rating</th>
+                <th>Instrumento / Ativo</th>
+                <th>Rating</th>
+                <th>Outlook</th>
+                <th>DataISO</th>
+                <th>Data</th>
+                <th>Link</th>
+              </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+          <!-- Custom bottom bar -->
+          <div id="dt-bottom-bar" class="dt-bottom-bar" style="display:none;">
+            <div id="dt-info-container"></div>
+            <div id="dt-paginate-container"></div>
+          </div>
+        </div><!-- /table-section -->
+      </div><!-- /view-lista -->
+
+        <!-- COMPARADOR SETORIAL -->
+        <div id="view-comparador" class="main-view">
+          <div class="comparator-header-box">
+            <div>
+              <h2 style="font-family: var(--font-head); font-size: 1.35rem; color: var(--text);">📊 Matriz Comparativa de Ratings por Setor</h2>
+              <p style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text3); margin-top: 0.35rem;">Compare lado a lado as notas vigentes dos emissores entre Fitch, Moody's, S&P, Austin e Liberum.</p>
+            </div>
+            <div>
+              <select id="comp-sector-filter" class="sector-dropdown" style="min-width: 280px; padding: 0.65rem 1rem; border-radius: 8px; border: 1px solid var(--border2); font-weight: 500;">
+                <option value="">Selecione um Setor...</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- KPI Cards do Setor -->
+          <div id="comp-cards-container" class="comparator-cards" style="display: none;">
+            <div class="comp-card">
+              <span class="comp-card-lbl">Emissores no Setor</span>
+              <span class="comp-card-val" id="comp-total-emissores">—</span>
+            </div>
+            <div class="comp-card">
+              <span class="comp-card-lbl">Cobertura Fitch</span>
+              <span class="comp-card-val" id="comp-fitch-emissores" style="color: #eab308;">—</span>
+            </div>
+            <div class="comp-card">
+              <span class="comp-card-lbl">Cobertura Moody's</span>
+              <span class="comp-card-val" id="comp-moodys-emissores" style="color: #38bdf8;">—</span>
+            </div>
+            <div class="comp-card">
+              <span class="comp-card-lbl">Cobertura S&P</span>
+              <span class="comp-card-val" id="comp-sp-emissores" style="color: #ff5c62;">—</span>
+            </div>
+            <div class="comp-card">
+              <span class="comp-card-lbl">Multi-Agência (2+)</span>
+              <span class="comp-card-val" id="comp-multi-emissores" style="color: var(--green);">—</span>
+            </div>
+          </div>
+
+          <!-- Barra de Busca do Comparador e Metadados -->
+          <div id="comp-toolbar-bar" class="comp-toolbar-bar" style="display: none;">
+            <div class="comp-search-bar">
+              <svg class="comp-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="comp-search-input" class="comp-search-input" placeholder="Filtrar emissor por nome ou CNPJ no setor..." autocomplete="off" />
+              <button id="comp-search-clear" type="button" class="comp-search-clear" title="Limpar busca">✕</button>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text3);">
+                Exibindo <strong id="comp-visible-count" style="color: var(--text);">0</strong> de <span id="comp-total-sector-count">0</span> emissores
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text3); font-family: var(--font-mono); background: rgba(0,212,255,0.06); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid rgba(0,212,255,0.15);">
+                💡 Clique no emissor para ver histórico
+              </span>
+            </div>
+          </div>
+
+          <div id="comparator-content">
+            <div class="empty-state" style="text-align: center; padding: 4rem 1rem; background: var(--surface); border: 1px dashed var(--border1); border-radius: var(--radius-lg); color: var(--text3);">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 1rem;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              <p>Selecione um setor acima para visualizar a matriz comparativa.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MOVIMENTAÇÕES VIEW -->
+        <div id="view-movimentacoes" class="main-view">
+          <div class="mov-header-box">
+            <div>
+              <h2 style="font-family: var(--font-head); font-size: 1.35rem; color: var(--text);">⚡ Relatório de Movimentações de Ratings</h2>
+              <p id="mov-period-desc" style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text3); margin-top: 0.35rem;">Painel de Upgrades, Downgrades e Alterações</p>
+            </div>
+            <div class="mov-period-pills" style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              <button class="mov-period-btn active" data-period="periodo">📅 Últimos 30 Dias</button>
+              <button class="mov-period-btn" data-period="diario">⚡ Últimas 24h</button>
+              <button class="mov-period-btn" data-period="todos">🌐 Todo o Histórico</button>
+            </div>
+          </div>
+
+          <!-- Campo de Busca de Emissores Largo e Destacado -->
+          <div class="mov-search-bar-container">
+            <div class="mov-search-bar">
+              <svg class="mov-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" id="mov-search-input" placeholder="Buscar por emissor (ex: Brava Energia, Gol, Petrobras, Smart Fit, OI), agência ou instrumento..." autocomplete="off" />
+              <button id="mov-search-clear" class="mov-search-clear-btn" title="Limpar busca" style="display: none;">✕</button>
+            </div>
+            <div class="mov-search-meta">
+              <span class="mov-search-badge"><strong id="mov-filtered-count">0</strong> de <span id="mov-total-in-period">0</span> movimentações</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin-top: 0.75rem; margin-bottom: 0.85rem;">
+            <span style="font-size: 0.72rem; color: var(--text3); font-family: var(--font-mono); text-transform: uppercase; margin-right: 0.25rem;">Agência:</span>
+            <button class="mov-agency-btn active" data-agency="ALL">Todas as Agências</button>
+            <button class="mov-agency-btn" data-agency="Fitch">Fitch</button>
+            <button class="mov-agency-btn" data-agency="Moody's">Moody's</button>
+            <button class="mov-agency-btn" data-agency="S&P">S&P</button>
+            <button class="mov-agency-btn" data-agency="Austin">Austin</button>
+            <button class="mov-agency-btn" data-agency="Liberum">Liberum</button>
+          </div>
+
+          <div class="mov-stats-bar" id="mov-stats-bar">
+            <div class="mov-stat-card mov-stat-up" data-filter="UPGRADE">
+              <span class="mov-stat-icon">🟢</span>
+              <div>
+                <div class="mov-stat-val" id="mov-count-up">0</div>
+                <div class="mov-stat-lbl">Upgrades</div>
+              </div>
+            </div>
+            <div class="mov-stat-card mov-stat-down" data-filter="DOWNGRADE">
+              <span class="mov-stat-icon">🔴</span>
+              <div>
+                <div class="mov-stat-val" id="mov-count-down">0</div>
+                <div class="mov-stat-lbl">Downgrades</div>
+              </div>
+            </div>
+            <div class="mov-stat-card mov-stat-new" data-filter="NOVO">
+              <span class="mov-stat-icon">🔵</span>
+              <div>
+                <div class="mov-stat-val" id="mov-count-new">0</div>
+                <div class="mov-stat-lbl">Novos Ratings</div>
+              </div>
+            </div>
+            <div class="mov-stat-card mov-stat-out" data-filter="OUTLOOK">
+              <span class="mov-stat-icon">🟡</span>
+              <div>
+                <div class="mov-stat-val" id="mov-count-out">0</div>
+                <div class="mov-stat-lbl">Mudanças Outlook</div>
+              </div>
+            </div>
+            <div class="mov-stat-card mov-stat-del" data-filter="RETIRADO">
+              <span class="mov-stat-icon">⚪</span>
+              <div>
+                <div class="mov-stat-val" id="mov-count-del">0</div>
+                <div class="mov-stat-lbl">Retirados</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mov-toolbar-actions">
+            <div class="mov-filter-pills" style="margin: 0;">
+              <button class="mov-pill active" data-type="ALL">Todos (<span id="mov-total-badge">0</span>)</button>
+              <button class="mov-pill pill-up" data-type="UPGRADE">🟢 Upgrades</button>
+              <button class="mov-pill pill-down" data-type="DOWNGRADE">🔴 Downgrades</button>
+              <button class="mov-pill pill-new" data-type="NOVO">🔵 Novos Ratings</button>
+              <button class="mov-pill pill-out" data-type="OUTLOOK">🟡 Alteração Outlook</button>
+              <button class="mov-pill pill-del" data-type="RETIRADO">⚪ Retirados</button>
+            </div>
+
+            <div class="mov-view-toggle">
+              <button id="btn-view-table" class="mov-vtoggle-btn active" title="Visualização em Tabela">📊 Tabela</button>
+              <button id="btn-view-cards" class="mov-vtoggle-btn" title="Visualização em Cards">🗂️ Cards</button>
+            </div>
+          </div>
+
+          <!-- Container Tabular (Padrão) -->
+          <div id="mov-table-container" class="mov-table-wrapper">
+            <table id="mov-data-table" class="display responsive nowrap" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>DataISO</th>
+                  <th class="col-center">Data</th>
+                  <th class="col-center">Ação</th>
+                  <th class="col-center">Agência</th>
+                  <th>Emissor</th>
+                  <th>Instrumento / Tipo</th>
+                  <th class="col-center">Rating Ant.</th>
+                  <th class="col-center">Rating Novo</th>
+                  <th class="col-center">Variação</th>
+                  <th class="col-center">Perspectiva</th>
+                  <th class="col-center">Fonte</th>
+                  <th>EmissorRaw</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- Container de Cards (Alternativo) -->
+          <div id="mov-cards-grid" class="mov-grid" style="display: none; margin-top: 1rem;">
+            <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
+
+      </div><!-- /page-container -->
+  </main>
+
+  <!-- ── Drawer overlay + panel ───────────────────────────── -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <aside class="drawer" id="emissor-drawer" role="dialog" aria-modal="true" aria-label="Detalhes do emissor">
+    <div class="drawer-header">
+      <div class="drawer-header-left">
+        <div class="drawer-emissor-name" id="drawer-name">—</div>
+        <div class="drawer-cnpj" id="drawer-cnpj"></div>
+      </div>
+      <button class="drawer-close" id="drawer-close" aria-label="Fechar painel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-summary" id="drawer-summary"></div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+
+  <footer>
+    <div class="footer-inner">
+      <span>&copy; 2026 Pulse Data Labs</span>
+      <span>&middot;</span>
+      <a href="mailto:pulsedatalabs@gmail.com">pulsedatalabs@gmail.com</a>
+      <span>&middot;</span>
+      <a href="https://github.com/PulseDataLabs/PulseRatingsBrasil" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </footer>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/responsive/3.0.4/js/dataTables.responsive.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.2.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/3.2.2/js/buttons.html5.min.js"></script>
+  <script src="./data/movimentacoes_ratings.js"></script>
+  <script>
+  (async function () {
+    const $table        = $('#ratings-table');
+    const $loading      = $('#loading');
+    const $error        = $('#error');
+    const $searchInput  = $('#search-input');
+    const $agencyChecks = $('.agency-checkboxes input[type="checkbox"]');
+    const $toggleConsolidated = $('#toggle-consolidated');
+
+    // Drawer elements
+    const $overlay    = $('#drawer-overlay');
+    const $drawer     = $('#emissor-drawer');
+    const $drawerName = $('#drawer-name');
+    const $drawerCNPJ = $('#drawer-cnpj');
+    const $drawerSumm = $('#drawer-summary');
+    const $drawerBody = $('#drawer-body');
+
+    let tableApi  = null;
+    let allData   = [];
+    let isConsolidated = false;   // current view mode
+
+    // ── Helpers ───────────────────────────────────────────────
+
+    function fmtDate(raw) {
+      if (!raw || raw === '—' || raw === 'None' || raw === 'null') return '—';
+      const m = String(raw).match(/(\d{4})[/-](\d{2})[/-](\d{2})/);
+      if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+      const br = String(raw).match(/^(\d{2})[/-](\d{2})[/-](\d{4})/);
+      if (br) return `${br[1]}/${br[2]}/${br[3]}`;
+      return raw;
+    }
+
+    function outlookClass(outlook) {
+      const o = (outlook || '').toLowerCase();
+      if (o.includes('estável') || o.includes('stable'))                return 'outlook-stable';
+      if (o.includes('positiva') || o.includes('positive'))             return 'outlook-positive';
+      if (o.includes('negativa') || o.includes('negative'))             return 'outlook-negative';
+      if (o.includes('developing') || o.includes('em desenvolvimento')) return 'outlook-developing';
+      if (o.includes('withdrawn') || o.includes('retirado'))            return 'outlook-withdrawn';
+      return '';
+    }
+    const AGENCY_META = {
+      'Fitch':        { cls: 'fitch',   badgeCls: 'badge-fitch' },
+      "Moody's":      { cls: 'moodys',  badgeCls: 'badge-moodys' },
+      'S&P':          { cls: 'sp',      badgeCls: 'badge-sp' },
+      'Austin':       { cls: 'austin',  badgeCls: 'badge-austin' },
+      'Liberum':      { cls: 'liberum', badgeCls: 'badge-liberum' },
+    };
+
+    function agencyMeta(a) { return AGENCY_META[a] || { cls: 'other', badgeCls: 'badge-other' }; }
+    function agencyBadge(a) {
+      const m = agencyMeta(a);
+      return `<span class="badge ${m.badgeCls}">${a}</span>`;
+    }
+    function onlyDigits(s) { return String(s || '').replace(/\D/g, ''); }
+
+    // ── Load data ─────────────────────────────────────────────
+
+    try {
+      const resp = await fetch('./data/emissores_rating.json');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      allData = await resp.json();
+    } catch (err) {
+      $loading.hide();
+      $error.text('Erro ao carregar dados: ' + err.message).show();
+      return;
+    }
+    if (!allData.length) {
+      $loading.hide();
+      $error.text('Nenhum dado encontrado.').show();
+      return;
+    }
+
+    // ── Stats ─────────────────────────────────────────────────
+
+    function renderTable() {
+      // ── Populate Sector Dropdown ──────────────────────────────
+      const $sectorFilter = $('#sector-filter');
+      const $compSectorFilter = $('#comp-sector-filter');
+      const setores = [...new Set(allData.map(r => r.setor).filter(Boolean))].sort();
+      
+      $sectorFilter.find('option:not(:first)').remove();
+      $compSectorFilter.find('option:not(:first)').remove();
+      
+      setores.forEach(s => {
+        $sectorFilter.append(`<option value="${s}">${s}</option>`);
+        $compSectorFilter.append(`<option value="${s}">${s}</option>`);
+      });
+
+      // ── Populate KPI Counters ─────────────────────────────────
+      const emissoresSet = new Set(allData.map(r => r.emissor));
+      const countBy = (key, val) => allData.filter(r => r[key] === val).length;
+      document.getElementById('stat-emissores').textContent = emissoresSet.size.toLocaleString('pt-BR');
+      document.getElementById('stat-ratings').textContent   = allData.length.toLocaleString('pt-BR');
+      document.getElementById('stat-fitch').textContent     = countBy('agencia', 'Fitch').toLocaleString('pt-BR');
+      document.getElementById('stat-moodys').textContent    = countBy('agencia', "Moody's").toLocaleString('pt-BR');
+      document.getElementById('stat-sp').textContent        = countBy('agencia', 'S&P').toLocaleString('pt-BR');
+      document.getElementById('stat-austin').textContent    = countBy('agencia', 'Austin').toLocaleString('pt-BR');
+      document.getElementById('stat-liberum').textContent   = countBy('agencia', 'Liberum').toLocaleString('pt-BR');
+    }
+    // ── Index allData by emissor and resolve sector across all rows ───
+    const byEmissor = {};
+    for (const r of allData) {
+      const key = r.emissor;
+      if (!byEmissor[key]) byEmissor[key] = { cnpj: r.cnpj || '', rows: [], setor: '', subsetor: '', segmento: '' };
+      byEmissor[key].rows.push(r);
+      if (r.setor && !byEmissor[key].setor) {
+        byEmissor[key].setor = r.setor;
+        byEmissor[key].subsetor = r.subsetor || '';
+        byEmissor[key].segmento = r.segmento || '';
+      }
+    }
+
+    // Propaga o setor resolvido para todas as linhas daquele emissor
+    for (const data of Object.values(byEmissor)) {
+      if (data.setor) {
+        for (const r of data.rows) {
+          if (!r.setor) {
+            r.setor = data.setor;
+            r.subsetor = data.subsetor;
+            r.segmento = data.segmento;
+          }
+        }
+      }
+    }
+
+    renderTable();
+
+    // ── Build DataTables row arrays ───────────────────────────
+
+    function buildDetailedData() {
+      return allData.map(r => {
+        const outlook     = r.outlook || '';
+        const instrumento = r.instrumento || r.ativo || r.instrumento_ativo || '';
+        const dateISO     = r.dt_acao || '';
+        const sectorRaw   = [r.setor, r.subsetor, r.segmento].filter(Boolean).join('|');
+        return [
+          r.emissor    || '—',
+          r.cnpj       || '—',
+          sectorRaw    || '—',
+          r.agencia    || '—',
+          r.tipo_rating|| '—',
+          instrumento  || '—',
+          r.rating     || '—',
+          outlook      || '—',
+          dateISO,
+          fmtDate(dateISO),
+          r.link       || ''
+        ];
+      });
+    }
+
+    function buildConsolidatedData() {
+      return Object.entries(byEmissor).map(([emissor, { cnpj, rows }]) => {
+        const agencies  = [...new Set(rows.map(r => r.agencia).filter(Boolean))];
+        const ratings   = [...new Set(rows.map(r => r.rating).filter(Boolean))];
+        const latestISO = rows.map(r => r.dt_acao || '').filter(Boolean).sort().at(-1) || '';
+        const firstRow = rows[0] || {};
+        const sectorRaw = [firstRow.setor, firstRow.subsetor, firstRow.segmento].filter(Boolean).join('|');
+
+        const link = rows.find(r => r.link)?.link || '';
+        return [
+          emissor,
+          cnpj || '—',
+          sectorRaw,
+          agencies.join(','),
+          agencies.join(' · '),
+          `${rows.length} rating${rows.length !== 1 ? 's' : ''}`,
+          ratings.slice(0, 3).join(' / ') + (ratings.length > 3 ? '…' : ''),
+          '—',
+          latestISO,
+          fmtDate(latestISO),
+          link
+        ];
+      });
+    }
+
+    // ── Column definitions ────────────────────────────────────
+
+    function buildColumns(consolidated) {
+      return [
+        { render: (d) => consolidated ? `<span class="emissor-cell">${d} <span style="font-size:0.65rem;color:var(--text3);margin-left:0.3rem;">↗</span></span>` : `<span class="emissor-cell">${d}</span>`, searchable: true },
+        { render: (d) => `<span class="cnpj-cell">${d}</span>`, searchable: true },
+        { 
+          render: (d) => {
+            if (d === '—' || !d) return `<span style="color:var(--text3);font-size:0.8rem;">—</span>`;
+            const [sec, sub, seg] = d.split('|');
+            let html = `<div style="font-weight:500;font-size:0.85rem;color:var(--text1); white-space: normal;">${sec}</div>`;
+            if (sub || seg) {
+              const subSeg = [sub, seg].filter(Boolean).join(' / ');
+              html += `<div style="font-size:0.75rem;color:var(--text3);margin-top:2px; white-space: normal;">${subSeg}</div>`;
+            }
+            return html;
+          },
+          searchable: true,
+        },
+        consolidated
+          ? { visible: false, searchable: true }
+          : { render: (d) => d !== '—' ? agencyBadge(d) : '—', searchable: true },
+        consolidated
+          ? {
+              render: (d) => {
+                const parts = d.split(' · ');
+                return parts.map(a => {
+                  const m = agencyMeta(a.trim());
+                  return `<span class="badge ${m.badgeCls}" style="margin-right:3px">${a.trim()}</span>`;
+                }).join('');
+              },
+              searchable: false,
+            }
+          : { render: (d) => d, searchable: true },
+        { render: (d) => `<span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text2)">${d}</span>`, searchable: !consolidated },
+        { render: (d) => `<span class="rating-cell">${d}</span>`, searchable: true },
+        consolidated
+          ? { visible: false, searchable: false }
+          : { render: (d, type) => type !== 'display' ? d : `<span class="outlook-cell ${outlookClass(d)}">${d}</span>`, searchable: false },
+        { visible: false, searchable: false },
+        { render: (d) => `<span class="date-cell">${d}</span>`, searchable: false, orderData: 8 },
+        { render: (d) => d ? `<a href="${d}" target="_blank" style="color:var(--accent); text-decoration:none;">Link ↗</a>` : '—', searchable: false },
+      ];
+    }
+
+    // ── Table initialization ──────────────────────────────────
+    $loading.hide();
+    $table.show();
+
+    function buildColumnDefs(consolidated) {
+      const headers = consolidated
+        ? ['Emissor', 'CNPJ', 'Setor', '(raw)', 'Agências', 'Ratings', 'Rating(s)', '', '', 'Última Ação', 'Link']
+        : ['Emissor', 'CNPJ', 'Setor', 'Agência', 'Tipo Rating', 'Instrumento / Ativo', 'Rating', 'Outlook', '', 'Data', 'Link'];
+      $table.find('thead th').each(function (i) {
+        if (headers[i] !== undefined && headers[i] !== '') $(this).text(headers[i]);
+      });
+    }
+
+    buildColumnDefs(isConsolidated);
+
+    tableApi = $table.DataTable({
+      data: buildDetailedData(),
+      responsive: true,
+      pageLength: 50,
+      lengthMenu: [[25, 50, 100, 250, -1], [25, 50, 100, 250, 'Todos']],
+      order: [[0, 'asc']],
+      language: { url: 'https://cdn.datatables.net/plug-ins/2.2.2/i18n/pt-BR.json' },
+      buttons: [
+        {
+          extend: 'excelHtml5',
+          text: 'Exportar Excel',
+          className: 'export-btn',
+          title: 'Ratings - Brasil',
+          exportOptions: { columns: [0,1,2,3,4,5,6,7,9] }
+        },
+      ],
+      dom: '<"dt-length-placeholder"l>t<"dt-info-placeholder"i><"dt-paginate-placeholder"p>',
+      columns: buildColumns(false),
+    });
+
+    // ── Move DT controls ──────────────────────────────────────
+
+    function moveDtControls() {
+      const $length   = $('.dt-length-placeholder');
+      const $info     = $('.dt-info-placeholder');
+      const $paginate = $('.dt-paginate-placeholder');
+      if ($length.length)   $('#dt-length-container').html($length.detach());
+      if ($info.length)     $('#dt-info-container').html($info.detach());
+      if ($paginate.length) $('#dt-paginate-container').html($paginate.detach());
+      $('#dt-top-bar').show();
+      $('#dt-bottom-bar').show();
+    }
+    setTimeout(moveDtControls, 100);
+
+    // ── Export ────────────────────────────────────────────────
+
+    $('#export-excel-btn').on('click', () => tableApi.button(0).trigger());
+
+    // ── Custom filter ─────────────────────────────────────────
+
+    let activeAgencies = new Set();
+    let searchQuery    = '';
+    const $sectorFilter = $('#sector-filter');
+
+    $.fn.dataTable.ext.search.push(function (settings, data) {
+      const rowAgencies = data[3].split(',').map(s => s.trim());
+      if (activeAgencies.size) {
+        const hasActive = rowAgencies.some(a => activeAgencies.has(a));
+        if (!hasActive) return false;
+      }
+      
+      const selectedSector = $sectorFilter.val();
+      if (selectedSector) {
+        const rowSectorRaw = data[2] || '';
+        const textData2 = rowSectorRaw.replace(/<[^>]*>?/gm, '').split('/')[0].trim();
+        if (textData2 !== selectedSector) return false;
+      }
+
+      if (searchQuery) {
+        const q       = searchQuery;
+        const qDigits = onlyDigits(q);
+        const matched =
+          data[0].toLowerCase().includes(q) ||
+          data[1].toLowerCase().includes(q) ||
+          (qDigits && onlyDigits(data[1]).includes(qDigits)) ||
+          data[2].toLowerCase().includes(q) ||
+          data[3].toLowerCase().includes(q) ||
+          data[4].toLowerCase().includes(q) ||
+          data[5].toLowerCase().includes(q) ||
+          data[6].toLowerCase().includes(q);
+        if (!matched) return false;
+      }
+      return true;
+    });
+
+    function applyFilters() {
+      if (!tableApi) return;
+      searchQuery    = $searchInput.val().trim().toLowerCase();
+      activeAgencies = new Set();
+      $agencyChecks.each(function () { if (this.checked) activeAgencies.add(this.value); });
+      tableApi.draw();
+    }
+
+    applyFilters();
+    $searchInput.on('input', applyFilters);
+    $agencyChecks.on('change', applyFilters);
+    $('#sector-filter').on('change', applyFilters);
+
+      // ── Main View Switching ───────────────────────────────────
+      $('.main-tab-btn').on('click', function() {
+        $('.main-tab-btn').removeClass('active');
+        $(this).addClass('active');
+        
+        const target = $(this).data('target');
+        $('.main-view').removeClass('active');
+        $('#' + target).addClass('active');
+
+        if (target === 'view-comparador') {
+          renderComparator();
+        } else if (target === 'view-movimentacoes') {
+          renderMovimentacoes();
+        }
+      });
+
+      // ── Movimentações Logic ──────────────────────────────────────────
+    let currentMovPeriod = 'periodo'; // 'periodo', 'diario', 'todos'
+    let currentMovType = 'ALL';       // 'ALL', 'UPGRADE', 'DOWNGRADE', 'NOVO', 'OUTLOOK', 'RETIRADO'
+    let currentMovAgency = 'ALL';     // 'ALL', 'Fitch', 'Moody's', 'S&P', 'Austin', 'Liberum'
+    let currentMovSearch = '';
+    let currentMovView = 'table'; // 'table' (padrão) ou 'cards'
+    let movTableApi = null;
+
+    function getMovimentacoesList() {
+      const data = window.PULSERATINGS_MOVIMENTACOES;
+      if (!data) return [];
+
+      let list = [];
+      if (currentMovPeriod === 'diario') {
+        const d = data.diario || {};
+        const em = (d.emissores && d.emissores.upgrades) ? d.emissores : {};
+        const is = (d.emissoes && d.emissoes.upgrades) ? d.emissoes : {};
+        ['upgrades', 'downgrades', 'novos', 'outlooks', 'retirados'].forEach(k => {
+          const tipo = k === 'upgrades' ? 'UPGRADE' : k === 'downgrades' ? 'DOWNGRADE' : k === 'novos' ? 'NOVO' : k === 'outlooks' ? 'OUTLOOK' : 'RETIRADO';
+          (em[k] || []).forEach(item => list.push({ ...item, categoria: 'Emissor', tipo }));
+          (is[k] || []).forEach(item => list.push({ ...item, categoria: 'Emissão', tipo }));
+        });
+      } else if (currentMovPeriod === 'todos') {
+        list = data.historico_completo || data.movimentacoes || [];
+      } else {
+        // 'periodo' (default - últimos 30 dias / histórico recente)
+        const p = data.periodo_recente || data;
+        const em = p.emissores || {};
+        const is = p.emissoes || {};
+        ['upgrades', 'downgrades', 'novos', 'outlooks', 'retirados'].forEach(k => {
+          const tipo = k === 'upgrades' ? 'UPGRADE' : k === 'downgrades' ? 'DOWNGRADE' : k === 'novos' ? 'NOVO' : k === 'outlooks' ? 'OUTLOOK' : 'RETIRADO';
+          (em[k] || []).forEach(item => list.push({ ...item, categoria: 'Emissor', tipo }));
+          (is[k] || []).forEach(item => list.push({ ...item, categoria: 'Emissão', tipo }));
+        });
+      }
+      return list;
+    }
+
+    function renderMovimentacoes() {
+      const data = window.PULSERATINGS_MOVIMENTACOES;
+      const $grid = $('#mov-cards-grid');
+      const $tableContainer = $('#mov-table-container');
+      const $desc = $('#mov-period-desc');
+
+      if (!data) {
+        $grid.html(`
+          <div class="empty-state" style="text-align: center; padding: 3rem 1rem; color: var(--text3); grid-column: 1 / -1;">
+            <p>Dados de movimentações de ratings ainda não foram carregados.</p>
+          </div>
+        `).show();
+        $tableContainer.hide();
+        return;
+      }
+
+      // Atualiza descrição do período
+      const pInfo = (currentMovPeriod === 'diario') ? (data.diario || {}) : (data.periodo_recente || data);
+      const dtAnt = pInfo.dt_anterior ? fmtDate(pInfo.dt_anterior) : 'Início';
+      const dtAtu = pInfo.dt_atual ? fmtDate(pInfo.dt_atual) : (data.dt_atual ? fmtDate(data.dt_atual) : '');
+      if (currentMovPeriod === 'diario') {
+        $desc.text(`Comparativo da última captura: ${dtAnt} ➔ ${dtAtu} (últimas 24h)`);
+      } else if (currentMovPeriod === 'todos') {
+        $desc.text(`Todo o histórico acumulado de alterações registradas até ${dtAtu}`);
+      } else {
+        $desc.text(`Período monitorado: ${dtAnt} ➔ ${dtAtu} (últimos 30 dias / capturas recentes)`);
+      }
+
+      const allItems = getMovimentacoesList();
+
+      // Recalcula contadores dos cards para o período selecionado
+      let cntUp = 0, cntDown = 0, cntNew = 0, cntOut = 0, cntDel = 0;
+      allItems.forEach(item => {
+        if (item.tipo === 'UPGRADE') cntUp++;
+        else if (item.tipo === 'DOWNGRADE') cntDown++;
+        else if (item.tipo === 'NOVO') cntNew++;
+        else if (item.tipo === 'OUTLOOK') cntOut++;
+        else if (item.tipo === 'RETIRADO') cntDel++;
+      });
+
+      $('#mov-count-up').text(cntUp);
+      $('#mov-count-down').text(cntDown);
+      $('#mov-count-new').text(cntNew);
+      $('#mov-count-out').text(cntOut);
+      $('#mov-count-del').text(cntDel);
+
+      // Atualiza contadores do cabeçalho de busca
+      $('#mov-total-in-period').text(allItems.length);
+
+      // Aplica filtros de Tipo, Agência e Busca sem distinção de acentos ou maiúsculas
+      function normSearchText(str) {
+        return (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      }
+      const searchTerms = normSearchText(currentMovSearch).trim().split(/\s+/).filter(Boolean);
+
+      const filtered = allItems.filter(item => {
+        if (currentMovType !== 'ALL' && item.tipo !== currentMovType) return false;
+        if (currentMovAgency !== 'ALL' && item.agencia !== currentMovAgency) return false;
+        if (searchTerms.length > 0) {
+          const haystack = normSearchText(`${item.emissor || ''} ${item.agencia || ''} ${item.instrumento || ''} ${item.rating_atual || ''} ${item.rating_anterior || ''}`);
+          if (!searchTerms.every(term => haystack.includes(term))) return false;
+        }
+        return true;
+      });
+
+      $('#mov-total-badge').text(filtered.length);
+      $('#mov-filtered-count').text(filtered.length);
+
+      if (filtered.length === 0) {
+        const hasSearch = currentMovSearch.trim().length > 0;
+        const searchEscaped = currentMovSearch.replace(/"/g, '&quot;');
+        const emptyHtml = `
+          <div class="empty-state" style="text-align: center; padding: 3.5rem 1rem; color: var(--text3); width: 100%; background: var(--surface); border: 1px dashed var(--border1); border-radius: var(--radius-lg);">
+            <p style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--text);">${hasSearch ? `Nenhum resultado encontrado para "<strong>${searchEscaped}</strong>".` : 'Nenhuma movimentação encontrada para os filtros selecionados.'}</p>
+            <p style="font-size: 0.8rem; color: var(--text3);">${hasSearch ? 'Verifique se o nome do emissor está correto ou tente buscar por termos parciais.' : 'Tente alterar o período, selecionar outra agência ou limpar a busca.'}</p>
+            ${hasSearch ? '<button id="btn-clear-empty-search" style="margin-top: 1rem; font-family: var(--font-mono); font-size: 0.8rem; cursor: pointer; padding: 0.5rem 1.2rem; background: rgba(0, 212, 255, 0.1); border: 1px solid var(--accent); color: var(--accent); border-radius: var(--radius-sm); transition: all 0.2s;">Limpar busca de emissor ✕</button>' : ''}
+          </div>
+        `;
+        $grid.html(emptyHtml).show();
+        $tableContainer.hide();
+        return;
+      }
+
+      // ── MODO TABELA (PADRÃO) ───────────────────────────────────
+      if (currentMovView === 'table') {
+        $grid.hide();
+        $tableContainer.show();
+
+        const tableData = filtered.map(m => {
+          const tipoLabel = {
+            UPGRADE: '<span class="mov-badge-tag tag-upgrade" style="font-size:0.68rem; padding: 2px 7px;">🟢 UPGRADE</span>',
+            DOWNGRADE: '<span class="mov-badge-tag tag-downgrade" style="font-size:0.68rem; padding: 2px 7px;">🔴 DOWNGRADE</span>',
+            NOVO: '<span class="mov-badge-tag tag-novo" style="font-size:0.68rem; padding: 2px 7px;">🔵 NOVO</span>',
+            OUTLOOK: '<span class="mov-badge-tag tag-outlook" style="font-size:0.68rem; padding: 2px 7px;">🟡 OUTLOOK</span>',
+            RETIRADO: '<span class="mov-badge-tag tag-retirado" style="font-size:0.68rem; padding: 2px 7px;">⚪ RETIRADO</span>'
+          }[m.tipo] || m.tipo;
+
+          const agBadge = agencyBadge(m.agencia);
+          const emissorHtml = `<span class="emissor-cell" style="cursor: pointer; font-weight: 600; color: var(--text);">${m.emissor} <span style="font-size:0.65rem;color:var(--text3);margin-left:0.3rem;">↗</span></span>`;
+          const linkHtml = m.link ? `<a href="${m.link}" target="_blank" rel="noopener" style="color:var(--accent); text-decoration:none; font-size: 0.8rem; font-weight: 500;">Link ↗</a>` : '—';
+          
+          let notchHtml = '<span style="color:var(--text3)">—</span>';
+          if (m.variacao_notches && m.variacao_notches !== '—' && m.variacao_notches !== '0') {
+            const isUp = m.tipo === 'UPGRADE';
+            notchHtml = `<span style="font-size: 0.72rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: ${isUp ? 'rgba(0,229,160,0.15)' : 'rgba(255,77,109,0.15)'}; color: ${isUp ? 'var(--green)' : 'var(--red)'}; font-family: var(--font-mono);">${m.variacao_notches}</span>`;
+          }
+
+          let newRatingHtml = `<span style="font-family: var(--font-mono); font-weight: 700;">${m.rating_atual || '—'}</span>`;
+          if (m.tipo === 'UPGRADE') {
+            newRatingHtml = `<span style="color: var(--green); font-weight: 700; font-family: var(--font-mono); font-size: 0.92rem;">${m.rating_atual}</span>`;
+          } else if (m.tipo === 'DOWNGRADE') {
+            newRatingHtml = `<span style="color: var(--red); font-weight: 700; font-family: var(--font-mono); font-size: 0.92rem;">${m.rating_atual}</span>`;
+          } else if (m.tipo === 'NOVO') {
+            newRatingHtml = `<span style="color: var(--accent); font-weight: 700; font-family: var(--font-mono); font-size: 0.92rem;">${m.rating_atual}</span>`;
+          } else if (m.tipo === 'RETIRADO') {
+            newRatingHtml = `<span style="color: var(--text3); font-size: 0.72rem; font-weight: 700;">RETIRADO</span>`;
+          }
+
+          let outlookHtml = '<span style="color:var(--text3)">—</span>';
+          if (m.outlook_atual) {
+            if (m.tipo === 'OUTLOOK') {
+              outlookHtml = `<span style="font-size:0.75rem; color:var(--gold); font-weight:600;">${m.outlook_anterior || 'Estável'} ➔ ${m.outlook_atual}</span>`;
+            } else {
+              outlookHtml = `<span class="rc-outlook ${outlookClass(m.outlook_atual)}" style="font-size:0.72rem; padding: 2px 6px;">${m.outlook_atual}</span>`;
+            }
+          }
+
+          const prevRatingHtml = `<span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text2);">${m.rating_anterior || '—'}</span>`;
+
+          return [
+            m.dt_acao || '',                           // col 0: DataISO (hidden, sort)
+            `<span class="date-cell" style="font-family:var(--font-mono); font-size:0.8rem;">${fmtDate(m.dt_acao)}</span>`, // col 1: Data BR
+            tipoLabel,                                // col 2: Ação
+            agBadge,                                  // col 3: Agência
+            emissorHtml,                              // col 4: Emissor
+            `<div style="font-size:0.78rem; color:var(--text2); max-width: 260px; white-space: normal; line-height: 1.3;">${m.instrumento || 'Corporativo / Emissor'}</div>`, // col 5: Instrumento
+            prevRatingHtml,                           // col 6: Rating Ant.
+            newRatingHtml,                            // col 7: Rating Novo
+            notchHtml,                                // col 8: Variação
+            outlookHtml,                              // col 9: Perspectiva
+            linkHtml,                                 // col 10: Fonte
+            m.emissor                                 // col 11: Emissor raw (hidden, for drawer click)
+          ];
+        });
+
+        if ($.fn.DataTable.isDataTable('#mov-data-table')) {
+          movTableApi.destroy();
+          $('#mov-data-table tbody').empty();
+        }
+
+        movTableApi = $('#mov-data-table').DataTable({
+          data: tableData,
+          responsive: false,
+          pageLength: 25,
+          lengthMenu: [[25, 50, 100, 250, -1], [25, 50, 100, 250, 'Todas']],
+          order: [[0, 'desc']], // Mais recentes primeiro
+          language: { url: 'https://cdn.datatables.net/plug-ins/2.2.2/i18n/pt-BR.json' },
+          columnDefs: [
+            { targets: 0, visible: false, searchable: false },
+            { targets: 1, orderData: 0, className: 'col-center' },
+            { targets: 2, className: 'col-center' },
+            { targets: 3, className: 'col-center' },
+            { targets: 4, className: 'emissor-col' },
+            { targets: 6, className: 'col-center' },
+            { targets: 7, className: 'col-center' },
+            { targets: 8, className: 'col-center' },
+            { targets: 9, className: 'col-center' },
+            { targets: 10, className: 'col-center' },
+            { targets: 11, visible: false, searchable: false }
+          ],
+          dom: '<"mov-dt-top"lfB>rt<"mov-dt-bottom"ip>',
+          buttons: [
+            {
+              extend: 'excelHtml5',
+              text: 'Exportar Excel',
+              className: 'export-btn',
+              title: 'Movimentacoes_Ratings_PulseRatings',
+              exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8, 9] }
+            },
+            {
+              extend: 'csvHtml5',
+              text: 'Exportar CSV',
+              className: 'export-btn',
+              title: 'Movimentacoes_Ratings_PulseRatings',
+              exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8, 9] }
+            }
+          ]
+        });
+
+        // Clique na linha ou no emissor para abrir Drawer
+        $('#mov-data-table tbody').off('click', 'tr').on('click', 'tr', function (e) {
+          if ($(e.target).is('a')) return;
+          const rowData = movTableApi.row(this).data();
+          if (rowData && rowData[11] && typeof openDrawer === 'function') {
+            openDrawer(rowData[11]);
+          }
+        });
+
+        return;
+      }
+
+      // ── MODO CARDS (ALTERNATIVO) ───────────────────────────────
+      $tableContainer.hide();
+      $grid.show();
+
+      const htmlCards = filtered.map(m => {
+        const borderClass = 'border-' + m.tipo.toLowerCase();
+        const tagClass = 'tag-' + m.tipo.toLowerCase();
+        const tipoLabel = {
+          UPGRADE: '🟢 ELEVAÇÃO (UPGRADE)',
+          DOWNGRADE: '🔴 REBAIXAMENTO',
+          NOVO: '🔵 NOVO RATING',
+          OUTLOOK: '🟡 PERSPECTIVA',
+          RETIRADO: '⚪ RETIRADO / LIQUIDADO'
+        }[m.tipo] || m.tipo;
+
+        let flowHtml = '';
+        if (m.tipo === 'UPGRADE' || m.tipo === 'DOWNGRADE') {
+          const notchBadge = (m.variacao_notches && m.variacao_notches !== '—' && m.variacao_notches !== '0')
+            ? `<span style="font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: ${m.tipo === 'UPGRADE' ? 'rgba(0,229,160,0.15)' : 'rgba(255,77,109,0.15)'}; color: ${m.tipo === 'UPGRADE' ? 'var(--green)' : 'var(--red)'};">${m.variacao_notches}</span>`
+            : '';
+          flowHtml = `
+            <div class="mov-rating-flow">
+              <span class="mov-old-r">${m.rating_anterior || '—'}</span>
+              <span class="mov-arrow">➔</span>
+              <span class="mov-new-r" style="color: ${m.tipo === 'UPGRADE' ? 'var(--green)' : 'var(--red)'}; font-size: 1.1rem;">${m.rating_atual || '—'}</span>
+              ${notchBadge}
+              <span style="font-size: 0.72rem; color: var(--text3); margin-left: auto;">${m.outlook_atual || 'Estável'}</span>
+            </div>
+          `;
+        } else if (m.tipo === 'OUTLOOK') {
+          flowHtml = `
+            <div class="mov-rating-flow">
+              <span class="mov-new-r">${m.rating_atual || '—'}</span>
+              <span style="font-size: 0.75rem; color: var(--gold); margin-left: auto;">${m.outlook_anterior || 'Estável'} ➔ <b>${m.outlook_atual || 'Estável'}</b></span>
+            </div>
+          `;
+        } else if (m.tipo === 'NOVO') {
+          flowHtml = `
+            <div class="mov-rating-flow">
+              <span class="mov-new-r" style="color: var(--accent); font-size: 1.1rem;">${m.rating_atual || '—'}</span>
+              <span style="font-size: 0.72rem; color: var(--text3); margin-left: auto;">${m.outlook_atual || 'Estável'}</span>
+            </div>
+          `;
+        } else {
+          flowHtml = `
+            <div class="mov-rating-flow">
+              <span class="mov-old-r">${m.rating_anterior || '—'}</span>
+              <span class="mov-arrow">➔</span>
+              <span style="color: var(--text3); font-size: 0.8rem; font-weight: 700;">ENCERRADO / RETIRADO</span>
+            </div>
+          `;
+        }
+
+        const agBadge = agencyBadge(m.agencia);
+        const linkBtn = m.link ? `<a href="${m.link}" target="_blank" rel="noopener" style="font-size: 0.7rem; color: var(--accent); text-decoration: none;">Ver Fonte ↗</a>` : '';
+
+        return `
+          <div class="mov-card ${borderClass}" data-emissor="${m.emissor}" style="cursor: pointer;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+              <span class="mov-badge-tag ${tagClass}">${tipoLabel}</span>
+              <span style="font-size: 0.72rem; color: var(--text3); font-family: var(--font-mono); font-weight: 600;">${fmtDate(m.dt_acao)}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: 0.15rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                ${agBadge}
+                <span style="font-size: 0.72rem; color: var(--text3);">${m.categoria || ''}</span>
+              </div>
+              ${linkBtn}
+            </div>
+            <div style="margin-top: 0.2rem;">
+              <div style="font-family: var(--font-head); font-weight: 700; font-size: 0.95rem; color: var(--text);">${m.emissor}</div>
+              <div style="font-size: 0.75rem; color: var(--text2); margin-top: 0.15rem; line-height: 1.35;">${m.instrumento || 'Corporativo / Emissor'}</div>
+            </div>
+            <div style="margin-top: auto; padding-top: 0.5rem; border-top: 1px solid var(--border1);">
+              ${flowHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      $grid.html(htmlCards);
+    }
+
+    // Event listeners para filtros de movimentações
+    $(document).on('click', '#btn-view-table', function() {
+      $('.mov-vtoggle-btn').removeClass('active');
+      $(this).addClass('active');
+      currentMovView = 'table';
+      renderMovimentacoes();
+    });
+
+    $(document).on('click', '#btn-view-cards', function() {
+      $('.mov-vtoggle-btn').removeClass('active');
+      $(this).addClass('active');
+      currentMovView = 'cards';
+      renderMovimentacoes();
+    });
+
+    $(document).on('click', '.mov-period-btn', function() {
+      $('.mov-period-btn').removeClass('active');
+      $(this).addClass('active');
+      currentMovPeriod = $(this).data('period');
+      renderMovimentacoes();
+    });
+
+    $(document).on('click', '.mov-agency-btn', function() {
+      $('.mov-agency-btn').removeClass('active');
+      $(this).addClass('active');
+      currentMovAgency = $(this).data('agency');
+      renderMovimentacoes();
+    });
+
+    $(document).on('click', '.mov-pill', function() {
+      $('.mov-pill').removeClass('active');
+      $(this).addClass('active');
+      currentMovType = $(this).data('type');
+      renderMovimentacoes();
+    });
+
+    $(document).on('click', '.mov-stat-card', function() {
+      const filterType = $(this).data('filter');
+      $('.mov-pill').removeClass('active');
+      $(`.mov-pill[data-type="${filterType}"]`).addClass('active');
+      currentMovType = filterType;
+      renderMovimentacoes();
+    });
+
+    $(document).on('input', '#mov-search-input', function() {
+      currentMovSearch = $(this).val();
+      if (currentMovSearch.trim().length > 0) {
+        $('#mov-search-clear').show();
+      } else {
+        $('#mov-search-clear').hide();
+      }
+      renderMovimentacoes();
+    });
+
+    $(document).on('click', '#mov-search-clear, #btn-clear-empty-search', function() {
+      $('#mov-search-input').val('').focus();
+      $('#mov-search-clear').hide();
+      currentMovSearch = '';
+      renderMovimentacoes();
+    });
+
+    $(document).on('keydown', '#mov-search-input', function(e) {
+      if (e.key === 'Escape') {
+        $(this).val('');
+        $('#mov-search-clear').hide();
+        currentMovSearch = '';
+        renderMovimentacoes();
+      }
+    });
+
+    $(document).on('click', '.mov-card', function(e) {
+      if ($(e.target).is('a')) return;
+      const emissor = $(this).data('emissor');
+      if (emissor && emissor !== '—' && typeof openDrawer === 'function') {
+        openDrawer(emissor);
+      }
+    });
+// ── Comparator Logic ──────────────────────────────────────────
+      const $compSectorFilter = $('#comp-sector-filter');
+      const $compCardsContainer = $('#comp-cards-container');
+      const $comparatorContent = $('#comparator-content');
+
+      $compSectorFilter.on('change', renderComparator);
+
+      function getRatingScore(rating) {
+        const r = rating.toUpperCase();
+        if (r.includes('AAA') || r.includes('AAA')) return 100;
+        if (r.includes('AA+') || r.includes('AA1')) return 95;
+        if (r.includes('AA') || r.includes('AA2')) return 90;
+        if (r.includes('AA-') || r.includes('AA3')) return 85;
+        if (r.includes('A+') || r.includes('A1')) return 80;
+        if (r.includes('A') || r.includes('A2')) return 75;
+        if (r.includes('A-') || r.includes('A3')) return 70;
+        if (r.includes('BBB+') || r.includes('BAA1')) return 65;
+        if (r.includes('BBB') || r.includes('BAA2')) return 60;
+        if (r.includes('BBB-') || r.includes('BAA3')) return 55;
+        if (r.includes('BB+') || r.includes('BA1')) return 50;
+        if (r.includes('BB') || r.includes('BA2')) return 45;
+        if (r.includes('BB-') || r.includes('BA3')) return 40;
+        if (r.includes('B+') || r.includes('B1')) return 35;
+        if (r.includes('B') || r.includes('B2')) return 30;
+        if (r.includes('B-') || r.includes('B3')) return 25;
+        if (r.includes('CCC') || r.includes('CAA')) return 20;
+        if (r.includes('CC') || r.includes('CA')) return 15;
+        if (r.includes('C')) return 10;
+        if (r.includes('D') || r.includes('SD')) return 0;
+        return 10;
+      }
+
+      function getRatingTierClass(rating) {
+        const r = (rating || '').toUpperCase();
+        if (r.includes('AAA') || r.includes('AA+') || r.includes('AA-') || r.includes('AA') || r.includes('AA1') || r.includes('AA2') || r.includes('AA3')) return 'grade-aa';
+        if (r.includes('A+') || r.includes('A-') || r.includes('A') || r.includes('A1') || r.includes('A2') || r.includes('A3')) return 'grade-a';
+        if (r.includes('BBB') || r.includes('BAA')) return 'grade-bbb';
+        if (r.includes('BB') || r.includes('BA')) return 'grade-bb';
+        return 'grade-b';
+      }
+
+      function renderAgencyMatrixCell(agRows) {
+        if (!agRows || agRows.length === 0) {
+          return `<span class="comp-empty-dash">—</span>`;
+        }
+
+        // Ordena por data mais recente
+        const sorted = [...agRows].sort((a, b) => (b.dt_acao || '').localeCompare(a.dt_acao || ''));
+
+        // Se houver ratings ativos, desconsidera retirados/WD
+        const active = sorted.filter(r => {
+          const rat = (r.rating || '').toUpperCase();
+          return !['WD', 'WR', 'PIF', 'NR', 'WITHDRAWN'].some(w => rat.includes(w));
+        });
+        const pool = active.length > 0 ? active : sorted;
+
+        // Prioriza escala nacional e rating de emissor/corporativo
+        pool.sort((a, b) => {
+          const aRat = (a.rating || '').toLowerCase();
+          const bRat = (b.rating || '').toLowerCase();
+          const aIsNat = aRat.includes('(bra)') || aRat.includes('.br') || aRat.startsWith('br');
+          const bIsNat = bRat.includes('(bra)') || bRat.includes('.br') || bRat.startsWith('br');
+          if (aIsNat && !bIsNat) return -1;
+          if (!aIsNat && bIsNat) return 1;
+
+          const aTipo = (a.tipo_rating || '').toLowerCase();
+          const bTipo = (b.tipo_rating || '').toLowerCase();
+          const aIsCorp = aTipo.includes('corporativo') || aTipo.includes('emissor') || aTipo.includes('issuer');
+          const bIsCorp = bTipo.includes('corporativo') || bTipo.includes('emissor') || bTipo.includes('issuer');
+          if (aIsCorp && !bIsCorp) return -1;
+          if (!aIsCorp && bIsCorp) return 1;
+
+          return (b.dt_acao || '').localeCompare(a.dt_acao || '');
+        });
+
+        // Agrupa por nota e perspectiva para não repetir
+        const groups = {};
+        for (const r of pool) {
+          const rat = r.rating;
+          if (!rat || rat === '—') continue;
+          const key = rat + '|' + (r.outlook || '');
+          if (!groups[key]) {
+            groups[key] = {
+              rating: rat,
+              outlook: r.outlook || '',
+              dt_acao: r.dt_acao || '',
+              instrumento: r.tipo_rating || r.instrumento || '',
+              count: 0
+            };
+          }
+          groups[key].count++;
+        }
+
+        const selectedGroups = Object.values(groups).slice(0, 2);
+        if (selectedGroups.length === 0) {
+          return `<span class="comp-empty-dash">—</span>`;
+        }
+
+        let html = '';
+        for (const g of selectedGroups) {
+          const gradeCls = getRatingTierClass(g.rating);
+          const oCls = outlookClass(g.outlook);
+          const oHtml = g.outlook ? `<span class="outlook-badge ${oCls}" style="font-size:0.6rem;padding:0.1rem 0.35rem;border-radius:3px;">${g.outlook}</span>` : '';
+          const countBadge = g.count > 1 ? `<span style="font-size:0.6rem;color:var(--text3);background:rgba(255,255,255,0.06);padding:0.1rem 0.3rem;border-radius:3px;" title="${g.count} instrumentos ou séries com esta mesma nota">(${g.count}x)</span>` : '';
+          
+          let instDisplay = g.instrumento || '';
+          if (instDisplay.length > 20) {
+            instDisplay = instDisplay.substring(0, 18) + '…';
+          }
+
+          html += `
+            <div class="comp-rating-card">
+              <div class="comp-rating-top-row">
+                <span class="comp-rating-tag ${gradeCls}">${g.rating}</span>
+                <div style="display:flex;align-items:center;gap:0.3rem;">
+                  ${countBadge}
+                  ${oHtml}
+                </div>
+              </div>
+              <div class="comp-rating-meta-row">
+                <span class="comp-rating-inst-text" title="${g.instrumento}">${instDisplay}</span>
+                <span class="comp-rating-dt-text">${fmtDate(g.dt_acao)}</span>
+              </div>
+            </div>
+          `;
+        }
+        return html;
+      }
+
+      function renderComparator() {
+        const sector = $compSectorFilter.val();
+        const $toolbarBar = $('#comp-toolbar-bar');
+
+        if (!sector) {
+          $compCardsContainer.hide();
+          $toolbarBar.hide();
+          $comparatorContent.html(`
+            <div class="empty-state" style="text-align: center; padding: 4rem 1rem; background: var(--surface); border: 1px dashed var(--border1); border-radius: var(--radius-lg); color: var(--text3);">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 1rem;"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+              <p>Selecione um setor acima para visualizar a matriz comparativa.</p>
+            </div>
+          `);
+          return;
+        }
+
+        const emissoresNoSetor = [];
+        let fitchEmissoresCount = 0;
+        let moodysEmissoresCount = 0;
+        let spEmissoresCount = 0;
+        let multiEmissoresCount = 0;
+
+        for (const [emissor, data] of Object.entries(byEmissor)) {
+          const emSetor = data.setor || (data.rows.find(r => r.setor)?.setor) || '';
+          if (emSetor === sector) {
+            const ags = new Set(data.rows.map(r => r.agencia).filter(Boolean));
+            if (ags.has('Fitch')) fitchEmissoresCount++;
+            if (ags.has("Moody's")) moodysEmissoresCount++;
+            if (ags.has('S&P')) spEmissoresCount++;
+            if (ags.size >= 2) multiEmissoresCount++;
+
+            emissoresNoSetor.push({
+              emissor,
+              cnpj: data.cnpj || '',
+              rows: data.rows,
+              agencies: ags
+            });
+          }
+        }
+
+        $('#comp-total-emissores').text(emissoresNoSetor.length.toLocaleString('pt-BR'));
+        $('#comp-fitch-emissores').text(fitchEmissoresCount.toLocaleString('pt-BR'));
+        $('#comp-moodys-emissores').text(moodysEmissoresCount.toLocaleString('pt-BR'));
+        $('#comp-sp-emissores').text(spEmissoresCount.toLocaleString('pt-BR'));
+        $('#comp-multi-emissores').text(multiEmissoresCount.toLocaleString('pt-BR'));
+        
+        $compCardsContainer.show();
+        $toolbarBar.show();
+        $('#comp-total-sector-count').text(emissoresNoSetor.length);
+        $('#comp-visible-count').text(emissoresNoSetor.length);
+        $('#comp-search-input').val('');
+        $('#comp-search-clear').hide();
+
+        if (emissoresNoSetor.length === 0) {
+          $comparatorContent.html('<p style="text-align:center;padding:3rem;color:var(--text3);background:var(--surface);border-radius:8px;">Nenhum emissor encontrado para este setor.</p>');
+          return;
+        }
+
+        // Colunas prioritárias: Fitch, Moody's, S&P, Austin, Liberum
+        const AGENCY_ORDER = ['Fitch', "Moody's", 'S&P', 'Austin', 'Liberum'];
+        const presentAgenciesSet = new Set();
+        emissoresNoSetor.forEach(e => e.agencies.forEach(a => presentAgenciesSet.add(a)));
+        
+        const allSectorAgencies = AGENCY_ORDER.filter(a => presentAgenciesSet.has(a))
+          .concat([...presentAgenciesSet].filter(a => !AGENCY_ORDER.includes(a)));
+
+        emissoresNoSetor.sort((a, b) => a.emissor.localeCompare(b.emissor));
+
+        let matrixHtml = `
+          <div class="comp-matrix-wrapper">
+            <table class="comp-matrix">
+              <thead>
+                <tr>
+                  <th class="comp-th-emissor">Emissor</th>
+                  ${allSectorAgencies.map(a => `<th style="text-align:center;"><span class="badge ${agencyMeta(a).badgeCls}" style="font-size:0.75rem;padding:0.25rem 0.65rem;">${a}</span></th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        for (const item of emissoresNoSetor) {
+          const searchNorm = `${item.emissor} ${item.cnpj}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          
+          matrixHtml += `
+            <tr data-search-text="${searchNorm}">
+              <td class="comp-td-emissor" data-emissor="${item.emissor}" style="cursor:pointer;" title="Clique para abrir detalhes do emissor">
+                <div style="font-weight:700;color:#f8fafc;font-size:0.84rem;line-height:1.25;display:flex;align-items:center;justify-content:space-between;">
+                  <span>${item.emissor}</span>
+                  <span style="font-size:0.7rem;color:var(--accent);margin-left:0.35rem;opacity:0.85;">↗</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.3rem;">
+                  <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text3);">${item.cnpj || '—'}</span>
+                  <span style="font-family:var(--font-mono);font-size:0.62rem;color:var(--accent);background:rgba(0,212,255,0.08);padding:0.1rem 0.35rem;border-radius:3px;">${item.rows.length} nota${item.rows.length !== 1 ? 's' : ''}</span>
+                </div>
+              </td>
+          `;
+          
+          for (const ag of allSectorAgencies) {
+            const agRows = item.rows.filter(r => r.agencia === ag);
+            const cellHtml = renderAgencyMatrixCell(agRows);
+            matrixHtml += `<td>${cellHtml}</td>`;
+          }
+          matrixHtml += `</tr>`;
+        }
+
+        matrixHtml += `
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        $comparatorContent.html(matrixHtml);
+      }
+
+      // Filtro de busca de emissor na matriz comparativa
+      $(document).on('input', '#comp-search-input', function() {
+        const query = $(this).val().toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        $('#comp-search-clear').toggle(!!query);
+        let visible = 0;
+        $('.comp-matrix tbody tr').each(function() {
+          const text = $(this).data('search-text') || '';
+          const match = !query || text.includes(query);
+          $(this).toggle(match);
+          if (match) visible++;
+        });
+        $('#comp-visible-count').text(visible);
+      });
+
+      $(document).on('click', '#comp-search-clear', function() {
+        $('#comp-search-input').val('').trigger('input');
+      });
+
+      // Clique no emissor da matriz comparativa abre o Drawer
+      $(document).on('click', '.comp-td-emissor', function() {
+        const em = $(this).data('emissor');
+        if (em && typeof openDrawer === 'function') openDrawer(em);
+      });
+
+    // ── Consolidated / Detailed toggle ────────────────────────
+
+    function safeDestroyTable() {
+      if (!tableApi) return;
+      const $wrapper = $('#ratings-table_wrapper');
+      if ($wrapper.length) {
+        const $length   = $('.dt-length-placeholder');
+        const $info     = $('.dt-info-placeholder');
+        const $paginate = $('.dt-paginate-placeholder');
+        $wrapper.append($length, $info, $paginate);
+      }
+      tableApi.destroy();
+      tableApi = null;
+    }
+
+    $toggleConsolidated.on('change', function () {
+      isConsolidated = this.checked;
+      closeDrawer();
+
+      safeDestroyTable();
+      $table.find('tbody').empty();
+      buildColumnDefs(isConsolidated);
+
+      tableApi = $table.DataTable({
+        data: isConsolidated ? buildConsolidatedData() : buildDetailedData(),
+        responsive: true,
+        pageLength: 50,
+        lengthMenu: [[25, 50, 100, 250, -1], [25, 50, 100, 250, 'Todos']],
+        order: [[0, 'asc']],
+        language: { url: 'https://cdn.datatables.net/plug-ins/2.2.2/i18n/pt-BR.json' },
+        buttons: [{
+          extend: 'excelHtml5', text: 'Excel', title: 'pulse_ratings_consulta',
+          exportOptions: { columns: isConsolidated ? [0,1,2,3,4,5,7,9] : [0,1,2,3,4,5,6,7,9] }
+        }],
+        dom: '<"dt-length-placeholder"l>t<"dt-info-placeholder"i><"dt-paginate-placeholder"p>',
+        columns: buildColumns(isConsolidated),
+      });
+
+      setTimeout(moveDtControls, 100);
+      applyFilters();
+      bindRowClick();
+    });
+
+    // ── Drawer logic ──────────────────────────────────────────
+
+    function openDrawer(emissor) {
+      const data = byEmissor[emissor];
+      if (!data) return;
+
+      $drawerName.text(emissor);
+      
+      let secHtml = '';
+      const firstRow = data.rows[0] || {};
+      if (firstRow.setor) {
+        secHtml = `<span style="margin-left: 1rem; color: var(--text1);">Setor: <b>${firstRow.setor}</b>`;
+        if (firstRow.subsetor || firstRow.segmento) {
+          const subSeg = [firstRow.subsetor, firstRow.segmento].filter(Boolean).join(' / ');
+          secHtml += ` <span style="color: var(--text3); font-weight: normal;">(${subSeg})</span>`;
+        }
+        secHtml += `</span>`;
+      }
+      
+      $drawerCNPJ.html((data.cnpj ? `CNPJ: ${data.cnpj}` : '') + secHtml);
+
+      // Build summary pills — one per agency that has ratings for this emissor
+      const agencyGroups = {};
+      for (const r of data.rows) {
+        if (!agencyGroups[r.agencia]) agencyGroups[r.agencia] = [];
+        agencyGroups[r.agencia].push(r);
+      }
+
+      let summaryHtml = '';
+      for (const [agencia, rows] of Object.entries(agencyGroups)) {
+        const m = agencyMeta(agencia);
+        summaryHtml += `
+          <span class="summary-pill ${m.cls}">
+            <span class="pill-dot"></span>
+            ${agencia} · ${rows.length} rating${rows.length !== 1 ? 's' : ''}
+          </span>`;
+      }
+      $drawerSumm.html(summaryHtml);
+
+      // Build body: section per agency, cards per rating
+      let bodyHtml = '';
+      for (const [agencia, rows] of Object.entries(agencyGroups)) {
+        const m = agencyMeta(agencia);
+        // Sort rows by date desc
+        const sorted = [...rows].sort((a, b) => (b.dt_acao || '').localeCompare(a.dt_acao || ''));
+
+        bodyHtml += `
+          <div class="agency-section">
+            <div class="agency-section-header">
+              <span class="agency-section-title" style="color:var(--${m.cls})">${agencia}</span>
+              <div class="agency-section-divider"></div>
+            </div>`;
+
+        for (const r of sorted) {
+          const instrumento = r.instrumento || r.ativo || r.instrumento_ativo || '';
+          const outlook     = r.outlook || '';
+          const oClass      = outlookClass(outlook);
+          bodyHtml += `
+            <div class="rating-card">
+              <div class="rating-card-top">
+                <span class="rc-tipo">${r.tipo_rating || '—'}</span>
+                <span class="rc-rating">${r.rating || '—'}</span>
+              </div>
+              ${instrumento ? `<div class="rating-card-instrument">${instrumento}</div>` : ''}
+              <div class="rating-card-bottom">
+                ${outlook ? `<span class="rc-outlook ${oClass}">${outlook}</span>` : ''}
+                <span class="rc-date">${fmtDate(r.dt_acao)}</span>
+              </div>
+            </div>`;
+        }
+
+        bodyHtml += `</div>`;
+      }
+
+      if (!bodyHtml) bodyHtml = '<div class="drawer-empty">Nenhum rating encontrado para este emissor.</div>';
+
+      $drawerBody.html(bodyHtml);
+
+      $overlay.addClass('open');
+      $drawer.addClass('open');
+      $drawer.attr('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+
+      // Highlight active row
+      $table.find('tbody tr').removeClass('row-active');
+      $table.find('tbody tr').filter(function () {
+        return $(this).find('td').first().text().trim() === emissor;
+      }).addClass('row-active');
+    }
+
+    function closeDrawer() {
+      $overlay.removeClass('open');
+      $drawer.removeClass('open');
+      $drawer.attr('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      $table.find('tbody tr').removeClass('row-active');
+    }
+
+    $('#drawer-close').on('click', closeDrawer);
+    $overlay.on('click', closeDrawer);
+    $(document).on('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+    function bindRowClick() {
+      $table.find('tbody').off('click.drawer').on('click.drawer', 'tr', function () {
+        const emissor = $(this).find('td').first().text().replace(/↗/g, '').trim();
+        if (emissor && emissor !== '—') openDrawer(emissor);
+      });
+      $table.find('tbody tr').addClass('clickable-row');
+    }
+
+    // Also bind after each DataTables draw (pagination changes DOM)
+    $table.on('draw.dt', function () {
+      $table.find('tbody tr').addClass('clickable-row');
+    });
+
+    // ── Updates section logic ────────────────────────────────
+    const $updatesGrid = $('#updates-content-list');
+    const $agencyPeriod = $('#agency-period-text');
+
+    function renderAgencyActions(agencyName) {
+      if (!allData || !allData.length) return;
+
+      // Filter and sort actions for this agency
+      const agencyActions = allData
+        .filter(r => r.agencia === agencyName && r.dt_acao)
+        .sort((a, b) => (b.dt_acao || '').localeCompare(a.dt_acao || ''));
+
+      // Calculate date period range of ALL actions for this agency
+      if (agencyActions.length) {
+        const minDate = fmtDate(agencyActions.reduce((a, b) => a.dt_acao < b.dt_acao ? a : b).dt_acao);
+        const maxDate = fmtDate(agencyActions.reduce((a, b) => a.dt_acao > b.dt_acao ? a : b).dt_acao);
+        $agencyPeriod.text(`Período de cobertura: de ${minDate} a ${maxDate}`);
+      } else {
+        $agencyPeriod.text('Período de cobertura: não disponível');
+      }
+
+      // Slice to top 8 items to display
+      const itemsToShow = agencyActions.slice(0, 8);
+
+      $updatesGrid.css('opacity', '0');
+      setTimeout(() => {
+        $updatesGrid.empty();
+        if (!itemsToShow.length) {
+          $updatesGrid.append(`
+            <div style="grid-column: 1/-1; padding: 1.5rem; text-align: center; color: var(--text3); font-family: var(--font-mono); font-size: 0.75rem;">
+              Nenhuma movimentação recente registrada para esta agência.
+            </div>
+          `);
+          $updatesGrid.css('opacity', '1');
+          return;
+        }
+
+        itemsToShow.forEach(item => {
+          const formattedDate = fmtDate(item.dt_acao);
+          const outlook = item.outlook || '';
+          const oClass = outlookClass(outlook);
+          const linkHtml = item.link ? `<a href="${item.link}" target="_blank" rel="noopener" class="date-link" style="color: var(--accent); margin-left: 0.4rem;" title="Ver Relatório Original">📄</a>` : '';
+
+          const cardHtml = `
+            <div class="update-card">
+              <div class="update-card-meta">
+                <span>${agencyBadge(item.agencia)}</span>
+                <div class="date-link">
+                  <span>${formattedDate}</span>
+                  ${linkHtml}
+                </div>
+              </div>
+              <div class="update-card-emitter" title="Clique para filtrar a tabela por este emissor" data-emitter="${item.emissor.replace(/"/g, '&quot;')}">
+                ${item.emissor}
+              </div>
+              <div class="update-card-inst" title="${item.instrumento || item.tipo_rating || '—'}">
+                ${item.instrumento || item.tipo_rating || '—'}
+              </div>
+              <div class="update-card-rating">
+                <span class="rc-rating">${item.rating || '—'}</span>
+                ${outlook ? `<span class="rc-outlook ${oClass}">${outlook}</span>` : ''}
+              </div>
+            </div>
+          `;
+          $updatesGrid.append(cardHtml);
+        });
+        $updatesGrid.css('opacity', '1');
+      }, 150);
+    }
+
+    // Click event for emitter card to filter
+    $updatesGrid.on('click', '.update-card-emitter', function () {
+      const emitterName = $(this).attr('data-emitter');
+      if (emitterName) {
+        $searchInput.val(emitterName);
+        applyFilters();
+        $('html, body').animate({
+          scrollTop: $table.offset().top - 100
+        }, 500);
+      }
+    });
+
+    // Tab switches
+    $('.update-tab-btn').on('click', function () {
+      const $btn = $(this);
+      if ($btn.hasClass('active')) return;
+      $('.update-tab-btn').removeClass('active').attr('aria-selected', 'false');
+      $btn.addClass('active').attr('aria-selected', 'true');
+      renderAgencyActions($btn.attr('data-agency'));
+    });
+
+    // Initial load of default tab
+    renderAgencyActions("Moody's");
+
+    bindRowClick();
+
+  })();
+  </script>
+</body>
+</html>
