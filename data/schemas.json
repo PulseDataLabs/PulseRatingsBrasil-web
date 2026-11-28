@@ -1,0 +1,412 @@
+[
+  {
+    "title": "Moody's — Ratings",
+    "files": "moodys_ratings.csv",
+    "source": "moodys",
+    "fields": [
+      {
+        "name": "no_setor",
+        "type": "str",
+        "example": ""
+      },
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "Avla Seguros Brasil S.A."
+      },
+      {
+        "name": "no_tipo_rating",
+        "type": "str",
+        "example": "Rating de Força Financeira"
+      },
+      {
+        "name": "de_instrumento",
+        "type": "str",
+        "example": "N/A"
+      },
+      {
+        "name": "de_objeto",
+        "type": "str",
+        "example": "Rating de Força Financeira"
+      },
+      {
+        "name": "de_rating_br",
+        "type": "str",
+        "example": "A-.br"
+      },
+      {
+        "name": "de_outlook",
+        "type": "str",
+        "example": "Perspectiva estável"
+      },
+      {
+        "name": "dt_rating",
+        "type": "date",
+        "example": "2026-08-07"
+      },
+      {
+        "name": "dh_atu_arquivo",
+        "type": "str",
+        "example": "2026-11-27"
+      }
+    ]
+  },
+  {
+    "title": "Ratings Emissores — Emissores",
+    "files": "ratings_emissores.csv",
+    "source": "other",
+    "fields": [
+      {
+        "name": "agencia",
+        "type": "str",
+        "example": "Austin"
+      },
+      {
+        "name": "no_emissor_padronizado",
+        "type": "str",
+        "example": "IN"
+      },
+      {
+        "name": "cnpj_emissor",
+        "type": "str",
+        "example": "05208211001703"
+      },
+      {
+        "name": "no_emissor_original",
+        "type": "str",
+        "example": "COOPERATIVA DE ECONOMIA E CRÉDITO MÚTUO DE FUNCIONÁRIOS DE INSTITUIÇÕES FINANCEIRAS PÚBLICAS FEDERAIS LTDA. – COOPERFORTE"
+      },
+      {
+        "name": "no_tipo_rating",
+        "type": "str",
+        "example": "Corporativo"
+      },
+      {
+        "name": "de_rating_br",
+        "type": "str",
+        "example": "brA+"
+      },
+      {
+        "name": "de_outlook",
+        "type": "str",
+        "example": "Positiva"
+      },
+      {
+        "name": "dt_acao_rating",
+        "type": "date",
+        "example": "2025-06-25"
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.austin.com.br/Historico-Rating/4579/Cooperativa_de_Economia_e_Crédito_Mútuo_de_Funcionários_de_Instituições_Financeiras_Públicas_Federais_Ltda_–_Cooperforte"
+      }
+    ]
+  },
+  {
+    "title": "Ratings Emissoes — Ratings",
+    "files": "ratings_emissoes.csv",
+    "source": "other",
+    "fields": [
+      {
+        "name": "agencia",
+        "type": "str",
+        "example": "Austin"
+      },
+      {
+        "name": "no_emissor_padronizado",
+        "type": "str",
+        "example": "FIDC"
+      },
+      {
+        "name": "cnpj_emissor",
+        "type": "str",
+        "example": "00822299000160"
+      },
+      {
+        "name": "no_emissor_original",
+        "type": "str",
+        "example": "ACTIVA FIDC - SUBORDINADAS JÚNIOR"
+      },
+      {
+        "name": "no_tipo_rating",
+        "type": "str",
+        "example": "FIDCs"
+      },
+      {
+        "name": "de_instrumento",
+        "type": "str",
+        "example": "SUBORDINADAS JÚNIOR"
+      },
+      {
+        "name": "de_rating_br",
+        "type": "str",
+        "example": "brB-"
+      },
+      {
+        "name": "de_outlook",
+        "type": "str",
+        "example": ""
+      },
+      {
+        "name": "dt_acao_rating",
+        "type": "date",
+        "example": "2020-04-02"
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.austin.com.br/Historico-Rating/1607/Activa_FIDC_-_Subordinadas_Júnior_"
+      },
+      {
+        "name": "no_devedor_vinculado",
+        "type": "str",
+        "example": ""
+      },
+      {
+        "name": "cnpj_devedor_vinculado",
+        "type": "str",
+        "example": ""
+      }
+    ]
+  },
+  {
+    "title": "Fitch — Emissores",
+    "files": "fitch_emissores.csv",
+    "source": "fitch",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "Verene Transmissao Subholding S.A."
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.fitchratings.com/entity/equatorial-transmissao-sa-97153792"
+      }
+    ]
+  },
+  {
+    "title": "Austin — Emissores",
+    "files": "austin_emissores.csv",
+    "source": "austin",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "ACCESS FIDC - SENIORES ÚNICA"
+      },
+      {
+        "name": "no_setor",
+        "type": "str",
+        "example": "FIDCs"
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.austin.com.br/Historico-Rating/3103/Access_FIDC_-_Seniores_Única"
+      }
+    ]
+  },
+  {
+    "title": "Liberum — Emissores",
+    "files": "liberum_emissores.csv",
+    "source": "liberum",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "R&G FUNDO DE INVESTIMENTO EM DIREITOS CREDITÓRIOS MULTISEGMENTOS"
+      },
+      {
+        "name": "no_setor",
+        "type": "str",
+        "example": "FIDC"
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.liberumratings.com.br/detalhes-ativo/29376"
+      }
+    ]
+  },
+  {
+    "title": "Liberum — Ratings",
+    "files": "liberum_ratings.csv",
+    "source": "liberum",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "R&G FUNDO DE INVESTIMENTO EM DIREITOS CREDITÓRIOS MULTISEGMENTOS"
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.liberumratings.com.br/detalhes-ativo/29376"
+      },
+      {
+        "name": "no_tipo_rating",
+        "type": "str",
+        "example": "FIDC"
+      },
+      {
+        "name": "de_rating_br",
+        "type": "str",
+        "example": "A"
+      },
+      {
+        "name": "dt_acao_rating",
+        "type": "date",
+        "example": "2026-11-26"
+      },
+      {
+        "name": "de_acao_rating",
+        "type": "str",
+        "example": "Encerramento"
+      },
+      {
+        "name": "de_outlook",
+        "type": "str",
+        "example": "Estável"
+      },
+      {
+        "name": "de_classe",
+        "type": "str",
+        "example": "Senior"
+      },
+      {
+        "name": "de_escala",
+        "type": "str",
+        "example": "Longo prazo"
+      }
+    ]
+  },
+  {
+    "title": "Austin — Ratings",
+    "files": "austin_ratings.csv",
+    "source": "austin",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "AÇO CEARENSE FIDC - SENIORES ÚNICA"
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.austin.com.br/Historico-Rating/5237/Aço_Cearense_FIDC_-_Seniores_Única"
+      },
+      {
+        "name": "no_tipo_rating",
+        "type": "str",
+        "example": "FIDCs"
+      },
+      {
+        "name": "de_rating_br",
+        "type": "str",
+        "example": "brBBB-"
+      },
+      {
+        "name": "de_rating_cp",
+        "type": "str",
+        "example": ""
+      },
+      {
+        "name": "de_rating_lp",
+        "type": "str",
+        "example": "brBBB-"
+      },
+      {
+        "name": "dt_acao_rating",
+        "type": "date",
+        "example": "2026-06-18"
+      },
+      {
+        "name": "de_acao_rating",
+        "type": "str",
+        "example": "Rating Inicial"
+      },
+      {
+        "name": "de_outlook",
+        "type": "str",
+        "example": "Estável"
+      },
+      {
+        "name": "link_relatorio",
+        "type": "str",
+        "example": "https://www.austin.com.br/Relatorio/Rating/Aço_Cearense_FIDC/11646"
+      }
+    ]
+  },
+  {
+    "title": "Fitch — Ratings",
+    "files": "fitch_ratings.csv",
+    "source": "fitch",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "Verene Transmissao Subholding S.A."
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": "https://www.fitchratings.com/entity/equatorial-transmissao-sa-97153792"
+      },
+      {
+        "name": "no_tipo_rating",
+        "type": "str",
+        "example": "National Long Term Rating"
+      },
+      {
+        "name": "de_rating_br",
+        "type": "str",
+        "example": "AAA(bra)"
+      },
+      {
+        "name": "dt_acao_rating",
+        "type": "date",
+        "example": "2026-11-27"
+      },
+      {
+        "name": "de_acao_rating",
+        "type": "str",
+        "example": "Affirmed"
+      },
+      {
+        "name": "de_outlook",
+        "type": "str",
+        "example": "Rating Outlook Stable"
+      },
+      {
+        "name": "de_instrumento",
+        "type": "str",
+        "example": ""
+      },
+      {
+        "name": "de_isin",
+        "type": "str",
+        "example": ""
+      }
+    ]
+  },
+  {
+    "title": "Moody's — Emissores",
+    "files": "moodys_emissores.csv",
+    "source": "moodys",
+    "fields": [
+      {
+        "name": "no_emissor",
+        "type": "str",
+        "example": "Avla Seguros Brasil S.A."
+      },
+      {
+        "name": "link",
+        "type": "str",
+        "example": ""
+      }
+    ]
+  }
+]
